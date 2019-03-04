@@ -1,0 +1,4079 @@
+
+# Observed Trends
+1) The max temperature are near the equator. When the latitude increases (towards North pole) or decreases (toward South pole), the max temperature drops. 
+
+2) Humidity and cloudiness do not seem to be correlated to latitude as there is a relatively uniform spread across the different latitude points. 
+
+3) The majority of cities have a wind speed under 20 mph. 
+
+
+```python
+#Dependencies
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+import requests
+import time
+import random
+!pip install citipy
+from citipy import citipy
+from config import api_key
+#set style for plots
+plt.style.use('seaborn-talk')
+
+```
+
+    Requirement already satisfied: citipy in c:\programdata\anaconda3\lib\site-packages (0.0.5)
+    Requirement already satisfied: kdtree>=0.12 in c:\programdata\anaconda3\lib\site-packages (from citipy) (0.16)
+
+# Representative Sample
+
+
+```python
+#Creating list of lats/lngs
+lats = range(-90, 90)
+lngs = range(-180, 180)
+city_list = []
+for lat in lats:
+    for lng in lngs:
+        city = citipy.nearest_city(lat, lng)
+        city_name = city.city_name
+        city_list.append(city_name)
+
+# Do some cleaning (remove duplicates)
+city_df = pd.DataFrame(city_list)
+new_city_df = city_df.drop_duplicates()
+
+
+```
+
+
+```python
+#Extracting sample cities
+city_samples = new_city_df.sample(750)
+city_samples = city_samples.reset_index(drop = True)
+city_samples.columns = ["City"]
+city_samples.index += 1 
+city_samples["Lat"] = ""
+city_samples["Lng"] = ""
+city_samples["Country"] = ""
+city_samples["Date"] = ""
+city_samples["Max Temp(°F) "] = ""
+city_samples["Humidity(%)"] = ""
+city_samples["Cloudiness(%)"] = ""
+city_samples["Wind Speed(mph)"] = ""
+city_samples.head()
+
+```
+
+City	Lat	Lng	Country	Date	Max Temp(°F)	Humidity(%)	Cloudiness(%)	Wind Speed(mph)
+1	smithers								
+2	tirat karmel								
+3	igrim								
+4	santa rosa								
+5	cavalcante								
+
+
+
+
+
+
+
+# OpenWeatherMap API Weather Check
+
+
+```python
+units = "Imperial"
+print("Beginning Data Retrieval")
+print("-------------------------------")
+for index,row in city_samples.iterrows():
+    city_name = row["City"]
+    city_url_name = city_name.replace(" ", "%20")
+    target_url = "http://api.openweathermap.org/data/2.5/weather?units=%s&APPID=%s&q=%s" % (units, api_key, city_url_name)
+    city_weather = requests.get(target_url).json()
+    city_samples.set_value(index,"Lat",city_weather.get("coord",{}).get("lat"))
+    city_samples.set_value(index,"Lng",city_weather.get("coord",{}).get("lon"))
+    city_samples.set_value(index,"Country",city_weather.get("sys",{}).get("country"))
+    city_samples.set_value(index,"Date",city_weather.get("dt",{}))
+    city_samples.set_value(index,"Max Temp(°F)",city_weather.get("main",{}).get("temp_max"))
+    city_samples.set_value(index,"Humidity(%)",city_weather.get("main",{}).get("humidity"))
+    city_samples.set_value(index,"Cloudiness(%)",city_weather.get("clouds",{}).get("all"))
+    city_samples.set_value(index,"Wind Speed(mph)",city_weather.get("wind",{}).get("speed"))
+    print("Processing City " + str(index) + " of 750 - " + str.title(city_name))
+    print_url = "http://api.openweathermap.org/data/2.5/weather?units=%s&APPID=%s&q=%s" % (units, "api_key", city_url_name)
+    print(print_url)
+print("-------------------------------")
+print("Data Retrieval Complete")
+print("-------------------------------")
+
+
+```
+
+  Beginning Data Retrieval
+-------------------------------
+C:\ProgramData\Anaconda3\lib\site-packages\ipykernel_launcher.py:9: FutureWarning: set_value is deprecated and will be removed in a future release. Please use .at[] or .iat[] accessors instead
+  if __name__ == '__main__':
+C:\ProgramData\Anaconda3\lib\site-packages\ipykernel_launcher.py:10: FutureWarning: set_value is deprecated and will be removed in a future release. Please use .at[] or .iat[] accessors instead
+  # Remove the CWD from sys.path while we load stuff.
+C:\ProgramData\Anaconda3\lib\site-packages\ipykernel_launcher.py:11: FutureWarning: set_value is deprecated and will be removed in a future release. Please use .at[] or .iat[] accessors instead
+  # This is added back by InteractiveShellApp.init_path()
+C:\ProgramData\Anaconda3\lib\site-packages\ipykernel_launcher.py:12: FutureWarning: set_value is deprecated and will be removed in a future release. Please use .at[] or .iat[] accessors instead
+  if sys.path[0] == '':
+C:\ProgramData\Anaconda3\lib\site-packages\ipykernel_launcher.py:13: FutureWarning: set_value is deprecated and will be removed in a future release. Please use .at[] or .iat[] accessors instead
+  del sys.path[0]
+C:\ProgramData\Anaconda3\lib\site-packages\ipykernel_launcher.py:14: FutureWarning: set_value is deprecated and will be removed in a future release. Please use .at[] or .iat[] accessors instead
+  
+C:\ProgramData\Anaconda3\lib\site-packages\ipykernel_launcher.py:15: FutureWarning: set_value is deprecated and will be removed in a future release. Please use .at[] or .iat[] accessors instead
+  from ipykernel import kernelapp as app
+C:\ProgramData\Anaconda3\lib\site-packages\ipykernel_launcher.py:16: FutureWarning: set_value is deprecated and will be removed in a future release. Please use .at[] or .iat[] accessors instead
+  app.launch_new_instance()
+Processing City 1 of 750 - Smithers
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=smithers
+Processing City 2 of 750 - Tirat Karmel
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=tirat%20karmel
+Processing City 3 of 750 - Igrim
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=igrim
+Processing City 4 of 750 - Santa Rosa
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=santa%20rosa
+Processing City 5 of 750 - Cavalcante
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=cavalcante
+Processing City 6 of 750 - Lazo
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=lazo
+Processing City 7 of 750 - Chodziez
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=chodziez
+Processing City 8 of 750 - Zlobin
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=zlobin
+Processing City 9 of 750 - Zhongshu
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=zhongshu
+Processing City 10 of 750 - Serra
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=serra
+Processing City 11 of 750 - Vygonichi
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=vygonichi
+Processing City 12 of 750 - Lagos
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=lagos
+Processing City 13 of 750 - Powell River
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=powell%20river
+Processing City 14 of 750 - Safwah
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=safwah
+Processing City 15 of 750 - Midland
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=midland
+Processing City 16 of 750 - Brasileia
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=brasileia
+Processing City 17 of 750 - Badvel
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=badvel
+Processing City 18 of 750 - Anna Paulowna
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=anna%20paulowna
+Processing City 19 of 750 - Pa Sang
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=pa%20sang
+Processing City 20 of 750 - Nosy Varika
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=nosy%20varika
+Processing City 21 of 750 - Kysyl-Syr
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=kysyl-syr
+Processing City 22 of 750 - Quzhou
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=quzhou
+Processing City 23 of 750 - Corpus Christi
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=corpus%20christi
+Processing City 24 of 750 - Bella Union
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=bella%20union
+Processing City 25 of 750 - Pirgos
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=pirgos
+Processing City 26 of 750 - Maningrida
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=maningrida
+Processing City 27 of 750 - Jucurutu
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=jucurutu
+Processing City 28 of 750 - Rach Gia
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=rach%20gia
+Processing City 29 of 750 - Tarnow
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=tarnow
+Processing City 30 of 750 - Los Alamos
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=los%20alamos
+Processing City 31 of 750 - Grimshaw
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=grimshaw
+Processing City 32 of 750 - Ifakara
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=ifakara
+Processing City 33 of 750 - Nynashamn
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=nynashamn
+Processing City 34 of 750 - Sao Geraldo Do Araguaia
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=sao%20geraldo%20do%20araguaia
+Processing City 35 of 750 - Rio Grande
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=rio%20grande
+Processing City 36 of 750 - Mudbidri
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=mudbidri
+Processing City 37 of 750 - Bondoukou
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=bondoukou
+Processing City 38 of 750 - Windsor
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=windsor
+Processing City 39 of 750 - Rajo Khanani
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=rajo%20khanani
+Processing City 40 of 750 - Cienaga
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=cienaga
+Processing City 41 of 750 - Neuruppin
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=neuruppin
+Processing City 42 of 750 - Smolensk
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=smolensk
+Processing City 43 of 750 - Mega
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=mega
+Processing City 44 of 750 - Plouzane
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=plouzane
+Processing City 45 of 750 - Dawei
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=dawei
+Processing City 46 of 750 - Kamiiso
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=kamiiso
+Processing City 47 of 750 - Gordeyevka
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=gordeyevka
+Processing City 48 of 750 - Darlawn
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=darlawn
+Processing City 49 of 750 - Khagrachari
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=khagrachari
+Processing City 50 of 750 - Kankaanpaa
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=kankaanpaa
+Processing City 51 of 750 - Stavropol
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=stavropol
+Processing City 52 of 750 - Newport
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=newport
+Processing City 53 of 750 - Lunenburg
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=lunenburg
+Processing City 54 of 750 - North Myrtle Beach
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=north%20myrtle%20beach
+Processing City 55 of 750 - Wencheng
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=wencheng
+Processing City 56 of 750 - Sokoni
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=sokoni
+Processing City 57 of 750 - Yuzhno-Kurilsk
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=yuzhno-kurilsk
+Processing City 58 of 750 - Muyezerskiy
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=muyezerskiy
+Processing City 59 of 750 - Pimentel
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=pimentel
+Processing City 60 of 750 - Aviles
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=aviles
+Processing City 61 of 750 - Moundsville
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=moundsville
+Processing City 62 of 750 - Cervo
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=cervo
+Processing City 63 of 750 - Cabras
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=cabras
+Processing City 64 of 750 - Seydi
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=seydi
+Processing City 65 of 750 - Suileng
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=suileng
+Processing City 66 of 750 - Garden Acres
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=garden%20acres
+Processing City 67 of 750 - Tomelloso
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=tomelloso
+Processing City 68 of 750 - Nigde
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=nigde
+Processing City 69 of 750 - Kaili
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=kaili
+Processing City 70 of 750 - Mitu
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=mitu
+Processing City 71 of 750 - Suwalki
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=suwalki
+Processing City 72 of 750 - Makkaveyevo
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=makkaveyevo
+Processing City 73 of 750 - Ahar
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=ahar
+Processing City 74 of 750 - Nakhon Phanom
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=nakhon%20phanom
+Processing City 75 of 750 - Bow Island
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=bow%20island
+Processing City 76 of 750 - Simbahan
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=simbahan
+Processing City 77 of 750 - El Dorado
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=el%20dorado
+Processing City 78 of 750 - Kinanah
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=kinanah
+Processing City 79 of 750 - Saint-Jean-De-Braye
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=saint-jean-de-braye
+Processing City 80 of 750 - Senj
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=senj
+Processing City 81 of 750 - Gombong
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=gombong
+Processing City 82 of 750 - Bitam
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=bitam
+Processing City 83 of 750 - Mpika
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=mpika
+Processing City 84 of 750 - Las Cruces
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=las%20cruces
+Processing City 85 of 750 - Ganganagar
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=ganganagar
+Processing City 86 of 750 - Duminichi
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=duminichi
+Processing City 87 of 750 - Snasa
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=snasa
+Processing City 88 of 750 - Uray
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=uray
+Processing City 89 of 750 - Rutigliano
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=rutigliano
+Processing City 90 of 750 - Hazleton
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=hazleton
+Processing City 91 of 750 - Lewistown
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=lewistown
+Processing City 92 of 750 - Massaguet
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=massaguet
+Processing City 93 of 750 - Danilov
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=danilov
+Processing City 94 of 750 - Geresk
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=geresk
+Processing City 95 of 750 - Alpena
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=alpena
+Processing City 96 of 750 - Quebo
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=quebo
+Processing City 97 of 750 - Mergui
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=mergui
+Processing City 98 of 750 - Kabalo
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=kabalo
+Processing City 99 of 750 - Marau
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=marau
+Processing City 100 of 750 - Uarini
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=uarini
+Processing City 101 of 750 - Cerinza
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=cerinza
+Processing City 102 of 750 - Petropavlovsk-Kamchatskiy
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=petropavlovsk-kamchatskiy
+Processing City 103 of 750 - Kyaikto
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=kyaikto
+Processing City 104 of 750 - Vila Do Maio
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=vila%20do%20maio
+Processing City 105 of 750 - Mankono
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=mankono
+Processing City 106 of 750 - Barrow
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=barrow
+Processing City 107 of 750 - Bubaque
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=bubaque
+Processing City 108 of 750 - Zhanakorgan
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=zhanakorgan
+Processing City 109 of 750 - Buriti Alegre
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=buriti%20alegre
+Processing City 110 of 750 - Ximei
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=ximei
+Processing City 111 of 750 - Werneck
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=werneck
+Processing City 112 of 750 - Arkhara
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=arkhara
+Processing City 113 of 750 - Nemuro
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=nemuro
+Processing City 114 of 750 - Butler
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=butler
+Processing City 115 of 750 - Primo Tapia
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=primo%20tapia
+Processing City 116 of 750 - Kidal
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=kidal
+Processing City 117 of 750 - Bang Saphan
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=bang%20saphan
+Processing City 118 of 750 - Arona
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=arona
+Processing City 119 of 750 - Nawa
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=nawa
+Processing City 120 of 750 - Huangmei
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=huangmei
+Processing City 121 of 750 - Lobito
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=lobito
+Processing City 122 of 750 - Mairana
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=mairana
+Processing City 123 of 750 - Kahone
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=kahone
+Processing City 124 of 750 - Tunduru
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=tunduru
+Processing City 125 of 750 - Guiyang
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=guiyang
+Processing City 126 of 750 - Willmar
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=willmar
+Processing City 127 of 750 - Truth Or Consequences
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=truth%20or%20consequences
+Processing City 128 of 750 - Zanesville
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=zanesville
+Processing City 129 of 750 - Sesheke
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=sesheke
+Processing City 130 of 750 - Vikulovo
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=vikulovo
+Processing City 131 of 750 - Santa Fe
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=santa%20fe
+Processing City 132 of 750 - Shevchenkove
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=shevchenkove
+Processing City 133 of 750 - Shetpe
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=shetpe
+Processing City 134 of 750 - Ust-Kalmanka
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=ust-kalmanka
+Processing City 135 of 750 - Phalombe
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=phalombe
+Processing City 136 of 750 - Orange
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=orange
+Processing City 137 of 750 - Canmore
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=canmore
+Processing City 138 of 750 - Frederiksvaerk
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=frederiksvaerk
+Processing City 139 of 750 - Gillette
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=gillette
+Processing City 140 of 750 - Kem
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=kem
+Processing City 141 of 750 - Gemena
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=gemena
+Processing City 142 of 750 - Rudnogorsk
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=rudnogorsk
+Processing City 143 of 750 - That Phanom
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=that%20phanom
+Processing City 144 of 750 - Delvine
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=delvine
+Processing City 145 of 750 - Polovinnoye
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=polovinnoye
+Processing City 146 of 750 - Manosque
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=manosque
+Processing City 147 of 750 - Chinique
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=chinique
+Processing City 148 of 750 - Qandala
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=qandala
+Processing City 149 of 750 - Hansi
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=hansi
+Processing City 150 of 750 - Caramoran
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=caramoran
+Processing City 151 of 750 - Eyl
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=eyl
+Processing City 152 of 750 - Malm
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=malm
+Processing City 153 of 750 - Manaia
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=manaia
+Processing City 154 of 750 - Montrose
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=montrose
+Processing City 155 of 750 - Swan River
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=swan%20river
+Processing City 156 of 750 - Poyarkovo
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=poyarkovo
+Processing City 157 of 750 - Angermunde
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=angermunde
+Processing City 158 of 750 - Hit
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=hit
+Processing City 159 of 750 - Muslyumovo
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=muslyumovo
+Processing City 160 of 750 - Ishlei
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=ishlei
+Processing City 161 of 750 - Salekhard
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=salekhard
+Processing City 162 of 750 - Kuandian
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=kuandian
+Processing City 163 of 750 - Vendome
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=vendome
+Processing City 164 of 750 - Choucheng
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=choucheng
+Processing City 165 of 750 - New Ulm
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=new%20ulm
+Processing City 166 of 750 - Haripur
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=haripur
+Processing City 167 of 750 - Mantua
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=mantua
+Processing City 168 of 750 - Aleksandrov Gay
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=aleksandrov%20gay
+Processing City 169 of 750 - Serebryanyy Bor
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=serebryanyy%20bor
+Processing City 170 of 750 - Emerald
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=emerald
+Processing City 171 of 750 - Morris
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=morris
+Processing City 172 of 750 - Awjilah
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=awjilah
+Processing City 173 of 750 - Epernay
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=epernay
+Processing City 174 of 750 - Etla
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=etla
+Processing City 175 of 750 - Capao Bonito
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=capao%20bonito
+Processing City 176 of 750 - Pervomayskiy
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=pervomayskiy
+Processing City 177 of 750 - Steinbach
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=steinbach
+Processing City 178 of 750 - Itapora
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=itapora
+Processing City 179 of 750 - Sinjar
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=sinjar
+Processing City 180 of 750 - Kumano
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=kumano
+Processing City 181 of 750 - Belyy
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=belyy
+Processing City 182 of 750 - Wahpeton
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=wahpeton
+Processing City 183 of 750 - Kaitangata
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=kaitangata
+Processing City 184 of 750 - Ojhar
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=ojhar
+Processing City 185 of 750 - Gbadolite
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=gbadolite
+Processing City 186 of 750 - Adre
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=adre
+Processing City 187 of 750 - Peniche
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=peniche
+Processing City 188 of 750 - Beloha
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=beloha
+Processing City 189 of 750 - Stryn
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=stryn
+Processing City 190 of 750 - Saint-Raphael
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=saint-raphael
+Processing City 191 of 750 - Sakti
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=sakti
+Processing City 192 of 750 - Mason City
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=mason%20city
+Processing City 193 of 750 - Hecelchakan
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=hecelchakan
+Processing City 194 of 750 - Zelenogorskiy
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=zelenogorskiy
+Processing City 195 of 750 - Ichhawar
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=ichhawar
+Processing City 196 of 750 - Kirensk
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=kirensk
+Processing City 197 of 750 - Kinsale
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=kinsale
+Processing City 198 of 750 - Miram Shah
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=miram%20shah
+Processing City 199 of 750 - Bustonkala
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=bustonkala
+Processing City 200 of 750 - La Peca
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=la%20peca
+Processing City 201 of 750 - Diofior
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=diofior
+Processing City 202 of 750 - Nyamuswa
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=nyamuswa
+Processing City 203 of 750 - Huron
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=huron
+Processing City 204 of 750 - Manono
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=manono
+Processing City 205 of 750 - Rumoi
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=rumoi
+Processing City 206 of 750 - Argentan
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=argentan
+Processing City 207 of 750 - Linchuan
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=linchuan
+Processing City 208 of 750 - Tzucacab
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=tzucacab
+Processing City 209 of 750 - Hondo
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=hondo
+Processing City 210 of 750 - Lowestoft
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=lowestoft
+Processing City 211 of 750 - Ruswil
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=ruswil
+Processing City 212 of 750 - Holice
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=holice
+Processing City 213 of 750 - Kez
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=kez
+Processing City 214 of 750 - Sangin
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=sangin
+Processing City 215 of 750 - Colonial Heights
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=colonial%20heights
+Processing City 216 of 750 - Zhengjiatun
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=zhengjiatun
+Processing City 217 of 750 - Qujing
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=qujing
+Processing City 218 of 750 - Mahajanga
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=mahajanga
+Processing City 219 of 750 - Mudon
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=mudon
+Processing City 220 of 750 - Kargasok
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=kargasok
+Processing City 221 of 750 - Urubicha
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=urubicha
+Processing City 222 of 750 - Kazachinskoye
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=kazachinskoye
+Processing City 223 of 750 - Melita
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=melita
+Processing City 224 of 750 - Arkadelphia
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=arkadelphia
+Processing City 225 of 750 - Bordighera
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=bordighera
+Processing City 226 of 750 - San Narciso
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=san%20narciso
+Processing City 227 of 750 - Gagnoa
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=gagnoa
+Processing City 228 of 750 - Olbia
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=olbia
+Processing City 229 of 750 - Posse
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=posse
+Processing City 230 of 750 - Sandpoint
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=sandpoint
+Processing City 231 of 750 - Vanimo
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=vanimo
+Processing City 232 of 750 - Santa Teresa
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=santa%20teresa
+Processing City 233 of 750 - Xuanhua
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=xuanhua
+Processing City 234 of 750 - Point Pleasant
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=point%20pleasant
+Processing City 235 of 750 - Fushe-Arrez
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=fushe-arrez
+Processing City 236 of 750 - Nanortalik
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=nanortalik
+Processing City 237 of 750 - Batken
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=batken
+Processing City 238 of 750 - Micheweni
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=micheweni
+Processing City 239 of 750 - Les Escoumins
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=les%20escoumins
+Processing City 240 of 750 - Masindi
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=masindi
+Processing City 241 of 750 - Badulla
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=badulla
+Processing City 242 of 750 - Carbonear
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=carbonear
+Processing City 243 of 750 - Werda
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=werda
+Processing City 244 of 750 - Barra
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=barra
+Processing City 245 of 750 - Almeirim
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=almeirim
+Processing City 246 of 750 - Caramay
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=caramay
+Processing City 247 of 750 - Thurso
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=thurso
+Processing City 248 of 750 - Salina
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=salina
+Processing City 249 of 750 - San Angelo
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=san%20angelo
+Processing City 250 of 750 - Pokrovsk
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=pokrovsk
+Processing City 251 of 750 - Synya
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=synya
+Processing City 252 of 750 - Kosjeric
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=kosjeric
+Processing City 253 of 750 - Sinait
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=sinait
+Processing City 254 of 750 - Manica
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=manica
+Processing City 255 of 750 - Nkongsamba
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=nkongsamba
+Processing City 256 of 750 - Sveti Nikole
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=sveti%20nikole
+Processing City 257 of 750 - Stulovo
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=stulovo
+Processing City 258 of 750 - Dzaoudzi
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=dzaoudzi
+Processing City 259 of 750 - Healdsburg
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=healdsburg
+Processing City 260 of 750 - Gualeguay
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=gualeguay
+Processing City 261 of 750 - Wuwei
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=wuwei
+Processing City 262 of 750 - Plettenberg Bay
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=plettenberg%20bay
+Processing City 263 of 750 - Mutoko
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=mutoko
+Processing City 264 of 750 - Dharchula
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=dharchula
+Processing City 265 of 750 - Busayra
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=busayra
+Processing City 266 of 750 - Coatesville
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=coatesville
+Processing City 267 of 750 - Bang Lamung
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=bang%20lamung
+Processing City 268 of 750 - Jaramana
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=jaramana
+Processing City 269 of 750 - Guelengdeng
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=guelengdeng
+Processing City 270 of 750 - Bakhmach
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=bakhmach
+Processing City 271 of 750 - Lebanon
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=lebanon
+Processing City 272 of 750 - Petropavlovka
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=petropavlovka
+Processing City 273 of 750 - Ouidah
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=ouidah
+Processing City 274 of 750 - Chirongui
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=chirongui
+Processing City 275 of 750 - Birin
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=birin
+Processing City 276 of 750 - Las Varas
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=las%20varas
+Processing City 277 of 750 - Adrar
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=adrar
+Processing City 278 of 750 - Capitan Bado
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=capitan%20bado
+Processing City 279 of 750 - Mukhen
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=mukhen
+Processing City 280 of 750 - Bundaberg
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=bundaberg
+Processing City 281 of 750 - Osypenko
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=osypenko
+Processing City 282 of 750 - Deputatskiy
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=deputatskiy
+Processing City 283 of 750 - Tapejara
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=tapejara
+Processing City 284 of 750 - Lingao
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=lingao
+Processing City 285 of 750 - Tiebissou
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=tiebissou
+Processing City 286 of 750 - Malacacheta
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=malacacheta
+Processing City 287 of 750 - Hebi
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=hebi
+Processing City 288 of 750 - Tarko-Sale
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=tarko-sale
+Processing City 289 of 750 - Minsk
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=minsk
+Processing City 290 of 750 - Kota Belud
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=kota%20belud
+Processing City 291 of 750 - Beyneu
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=beyneu
+Processing City 292 of 750 - Yulin
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=yulin
+Processing City 293 of 750 - Wangou
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=wangou
+Processing City 294 of 750 - Sudak
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=sudak
+Processing City 295 of 750 - Boyuibe
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=boyuibe
+Processing City 296 of 750 - Rajampet
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=rajampet
+Processing City 297 of 750 - Abomey
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=abomey
+Processing City 298 of 750 - Kashary
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=kashary
+Processing City 299 of 750 - Nybro
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=nybro
+Processing City 300 of 750 - Raipur
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=raipur
+Processing City 301 of 750 - Mahenge
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=mahenge
+Processing City 302 of 750 - Pirenopolis
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=pirenopolis
+Processing City 303 of 750 - Debre Tabor
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=debre%20tabor
+Processing City 304 of 750 - Bobrov
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=bobrov
+Processing City 305 of 750 - Gopalpur
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=gopalpur
+Processing City 306 of 750 - Kutahya
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=kutahya
+Processing City 307 of 750 - Canutama
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=canutama
+Processing City 308 of 750 - Talara
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=talara
+Processing City 309 of 750 - Shizilu
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=shizilu
+Processing City 310 of 750 - Jurm
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=jurm
+Processing City 311 of 750 - Helong
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=helong
+Processing City 312 of 750 - Kungalv
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=kungalv
+Processing City 313 of 750 - Ipatovo
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=ipatovo
+Processing City 314 of 750 - Angol
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=angol
+Processing City 315 of 750 - Angren
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=angren
+Processing City 316 of 750 - Kaspiysk
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=kaspiysk
+Processing City 317 of 750 - Iisalmi
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=iisalmi
+Processing City 318 of 750 - Cumana
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=cumana
+Processing City 319 of 750 - Azrow
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=azrow
+Processing City 320 of 750 - Maneadero
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=maneadero
+Processing City 321 of 750 - Miranorte
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=miranorte
+Processing City 322 of 750 - Novouzensk
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=novouzensk
+Processing City 323 of 750 - Pondicherry
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=pondicherry
+Processing City 324 of 750 - Cotui
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=cotui
+Processing City 325 of 750 - Benicarlo
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=benicarlo
+Processing City 326 of 750 - Jieshou
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=jieshou
+Processing City 327 of 750 - Williston
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=williston
+Processing City 328 of 750 - Seligenstadt
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=seligenstadt
+Processing City 329 of 750 - Izhmorskiy
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=izhmorskiy
+Processing City 330 of 750 - Holme
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=holme
+Processing City 331 of 750 - Liwale
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=liwale
+Processing City 332 of 750 - Boshnyakovo
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=boshnyakovo
+Processing City 333 of 750 - Snihurivka
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=snihurivka
+Processing City 334 of 750 - Ambodifototra
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=ambodifototra
+Processing City 335 of 750 - Toora-Khem
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=toora-khem
+Processing City 336 of 750 - Nalgonda
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=nalgonda
+Processing City 337 of 750 - Touros
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=touros
+Processing City 338 of 750 - La Asuncion
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=la%20asuncion
+Processing City 339 of 750 - Talavera De La Reina
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=talavera%20de%20la%20reina
+Processing City 340 of 750 - Tsaratanana
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=tsaratanana
+Processing City 341 of 750 - Gympie
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=gympie
+Processing City 342 of 750 - Mehndawal
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=mehndawal
+Processing City 343 of 750 - Leshukonskoye
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=leshukonskoye
+Processing City 344 of 750 - Amga
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=amga
+Processing City 345 of 750 - Addi Ugri
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=addi%20ugri
+Processing City 346 of 750 - Zaraza
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=zaraza
+Processing City 347 of 750 - Diu
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=diu
+Processing City 348 of 750 - Bunbury
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=bunbury
+Processing City 349 of 750 - Chepo
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=chepo
+Processing City 350 of 750 - Petrozavodsk
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=petrozavodsk
+Processing City 351 of 750 - Ibiapina
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=ibiapina
+Processing City 352 of 750 - Numan
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=numan
+Processing City 353 of 750 - Lesnoy
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=lesnoy
+Processing City 354 of 750 - Lang Suan
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=lang%20suan
+Processing City 355 of 750 - Kankan
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=kankan
+Processing City 356 of 750 - Soe
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=soe
+Processing City 357 of 750 - Viking
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=viking
+Processing City 358 of 750 - Orje
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=orje
+Processing City 359 of 750 - Barao De Melgaco
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=barao%20de%20melgaco
+Processing City 360 of 750 - Ibate
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=ibate
+Processing City 361 of 750 - Gistrup
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=gistrup
+Processing City 362 of 750 - Cehegin
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=cehegin
+Processing City 363 of 750 - Lewisville
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=lewisville
+Processing City 364 of 750 - Karamken
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=karamken
+Processing City 365 of 750 - Mineral Wells
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=mineral%20wells
+Processing City 366 of 750 - Kuvshinovo
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=kuvshinovo
+Processing City 367 of 750 - Zasechnoye
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=zasechnoye
+Processing City 368 of 750 - The Pas
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=the%20pas
+Processing City 369 of 750 - Aswan
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=aswan
+Processing City 370 of 750 - Tarakan
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=tarakan
+Processing City 371 of 750 - La Baneza
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=la%20baneza
+Processing City 372 of 750 - Tha Mai
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=tha%20mai
+Processing City 373 of 750 - Sao Raimundo Nonato
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=sao%20raimundo%20nonato
+Processing City 374 of 750 - Rockport
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=rockport
+Processing City 375 of 750 - Tamulte
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=tamulte
+Processing City 376 of 750 - Bela Vista
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=bela%20vista
+Processing City 377 of 750 - South Sioux City
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=south%20sioux%20city
+Processing City 378 of 750 - Brcko
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=brcko
+Processing City 379 of 750 - Norsup
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=norsup
+Processing City 380 of 750 - Can Tho
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=can%20tho
+Processing City 381 of 750 - Kilis
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=kilis
+Processing City 382 of 750 - Boguchany
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=boguchany
+Processing City 383 of 750 - Najran
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=najran
+Processing City 384 of 750 - Aykhal
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=aykhal
+Processing City 385 of 750 - Zalaszentgrot
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=zalaszentgrot
+Processing City 386 of 750 - Srandakan
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=srandakan
+Processing City 387 of 750 - Camacha
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=camacha
+Processing City 388 of 750 - Diosjeno
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=diosjeno
+Processing City 389 of 750 - Riyaq
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=riyaq
+Processing City 390 of 750 - Scottsboro
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=scottsboro
+Processing City 391 of 750 - Gayeri
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=gayeri
+Processing City 392 of 750 - Montego Bay
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=montego%20bay
+Processing City 393 of 750 - Athy
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=athy
+Processing City 394 of 750 - Arkhipo-Osipovka
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=arkhipo-osipovka
+Processing City 395 of 750 - Dunayivtsi
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=dunayivtsi
+Processing City 396 of 750 - Menzelinsk
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=menzelinsk
+Processing City 397 of 750 - Lenine
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=lenine
+Processing City 398 of 750 - Higuey
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=higuey
+Processing City 399 of 750 - Inderborskiy
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=inderborskiy
+Processing City 400 of 750 - Effingham
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=effingham
+Processing City 401 of 750 - Namanyere
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=namanyere
+Processing City 402 of 750 - Sovetskaya
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=sovetskaya
+Processing City 403 of 750 - Mormugao
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=mormugao
+Processing City 404 of 750 - Amozoc
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=amozoc
+Processing City 405 of 750 - Nizhniy Bestyakh
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=nizhniy%20bestyakh
+Processing City 406 of 750 - Otane
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=otane
+Processing City 407 of 750 - Kibaya
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=kibaya
+Processing City 408 of 750 - Excelsior Springs
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=excelsior%20springs
+Processing City 409 of 750 - Terenos
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=terenos
+Processing City 410 of 750 - Zverinogolovskoye
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=zverinogolovskoye
+Processing City 411 of 750 - Kilembe
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=kilembe
+Processing City 412 of 750 - Tevaitoa
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=tevaitoa
+Processing City 413 of 750 - Pleshanovo
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=pleshanovo
+Processing City 414 of 750 - Owensboro
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=owensboro
+Processing City 415 of 750 - Itoman
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=itoman
+Processing City 416 of 750 - Gerash
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=gerash
+Processing City 417 of 750 - Amarante Do Maranhao
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=amarante%20do%20maranhao
+Processing City 418 of 750 - Lukulu
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=lukulu
+Processing City 419 of 750 - Walla Walla
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=walla%20walla
+Processing City 420 of 750 - Hakkari
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=hakkari
+Processing City 421 of 750 - Kariya
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=kariya
+Processing City 422 of 750 - Votkinsk
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=votkinsk
+Processing City 423 of 750 - Coldwater
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=coldwater
+Processing City 424 of 750 - Loutros
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=loutros
+Processing City 425 of 750 - Pyaozerskiy
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=pyaozerskiy
+Processing City 426 of 750 - Mporokoso
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=mporokoso
+Processing City 427 of 750 - Chicama
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=chicama
+Processing City 428 of 750 - Novochernorechenskiy
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=novochernorechenskiy
+Processing City 429 of 750 - Devrek
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=devrek
+Processing City 430 of 750 - Upig
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=upig
+Processing City 431 of 750 - Batagay-Alyta
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=batagay-alyta
+Processing City 432 of 750 - Pousat
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=pousat
+Processing City 433 of 750 - Chagda
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=chagda
+Processing City 434 of 750 - Cheremkhovo
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=cheremkhovo
+Processing City 435 of 750 - Logumkloster
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=logumkloster
+Processing City 436 of 750 - Rangoon
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=rangoon
+Processing City 437 of 750 - Gondanglegi
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=gondanglegi
+Processing City 438 of 750 - Winchester
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=winchester
+Processing City 439 of 750 - Xinzhi
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=xinzhi
+Processing City 440 of 750 - Bom Jesus
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=bom%20jesus
+Processing City 441 of 750 - Cam Pha
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=cam%20pha
+Processing City 442 of 750 - Tobane
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=tobane
+Processing City 443 of 750 - Bayir
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=bayir
+Processing City 444 of 750 - Tacuarembo
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=tacuarembo
+Processing City 445 of 750 - Hendaye
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=hendaye
+Processing City 446 of 750 - Casablanca
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=casablanca
+Processing City 447 of 750 - Nizhniy Tsasuchey
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=nizhniy%20tsasuchey
+Processing City 448 of 750 - Pozo Colorado
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=pozo%20colorado
+Processing City 449 of 750 - Suleja
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=suleja
+Processing City 450 of 750 - Gunnedah
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=gunnedah
+Processing City 451 of 750 - Znamenskoye
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=znamenskoye
+Processing City 452 of 750 - Longview
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=longview
+Processing City 453 of 750 - Caucasia
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=caucasia
+Processing City 454 of 750 - Burica
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=burica
+Processing City 455 of 750 - Gescher
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=gescher
+Processing City 456 of 750 - Campo Verde
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=campo%20verde
+Processing City 457 of 750 - Hutchinson
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=hutchinson
+Processing City 458 of 750 - Yhu
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=yhu
+Processing City 459 of 750 - Nalut
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=nalut
+Processing City 460 of 750 - Alyangula
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=alyangula
+Processing City 461 of 750 - Jaru
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=jaru
+Processing City 462 of 750 - Pilar
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=pilar
+Processing City 463 of 750 - Tengzhou
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=tengzhou
+Processing City 464 of 750 - San Mateo Del Mar
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=san%20mateo%20del%20mar
+Processing City 465 of 750 - Huangpi
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=huangpi
+Processing City 466 of 750 - Belaya Glina
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=belaya%20glina
+Processing City 467 of 750 - Plaridel
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=plaridel
+Processing City 468 of 750 - Caracuaro
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=caracuaro
+Processing City 469 of 750 - Bukama
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=bukama
+Processing City 470 of 750 - Glyadyanskoye
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=glyadyanskoye
+Processing City 471 of 750 - Alto Araguaia
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=alto%20araguaia
+Processing City 472 of 750 - Subtanjalla
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=subtanjalla
+Processing City 473 of 750 - Brumunddal
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=brumunddal
+Processing City 474 of 750 - Superior
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=superior
+Processing City 475 of 750 - Corinto
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=corinto
+Processing City 476 of 750 - Omsukchan
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=omsukchan
+Processing City 477 of 750 - Krabi
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=krabi
+Processing City 478 of 750 - Opobo
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=opobo
+Processing City 479 of 750 - Katsiveli
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=katsiveli
+Processing City 480 of 750 - Ayan
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=ayan
+Processing City 481 of 750 - Torrox
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=torrox
+Processing City 482 of 750 - Copacabana
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=copacabana
+Processing City 483 of 750 - Grand Forks
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=grand%20forks
+Processing City 484 of 750 - Tranas
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=tranas
+Processing City 485 of 750 - Wainwright
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=wainwright
+Processing City 486 of 750 - Amod
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=amod
+Processing City 487 of 750 - Qazvin
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=qazvin
+Processing City 488 of 750 - Rahon
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=rahon
+Processing City 489 of 750 - Yauya
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=yauya
+Processing City 490 of 750 - Rorvik
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=rorvik
+Processing City 491 of 750 - La Ciotat
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=la%20ciotat
+Processing City 492 of 750 - Abu Zabad
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=abu%20zabad
+Processing City 493 of 750 - Mandan
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=mandan
+Processing City 494 of 750 - Masvingo
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=masvingo
+Processing City 495 of 750 - Kilkis
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=kilkis
+Processing City 496 of 750 - Valkeala
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=valkeala
+Processing City 497 of 750 - Severo-Yeniseyskiy
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=severo-yeniseyskiy
+Processing City 498 of 750 - Sandy Bay
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=sandy%20bay
+Processing City 499 of 750 - Pishin
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=pishin
+Processing City 500 of 750 - Fengrun
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=fengrun
+Processing City 501 of 750 - Hattiesburg
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=hattiesburg
+Processing City 502 of 750 - Manicore
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=manicore
+Processing City 503 of 750 - Imabari
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=imabari
+Processing City 504 of 750 - Gamboula
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=gamboula
+Processing City 505 of 750 - Dzhebariki-Khaya
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=dzhebariki-khaya
+Processing City 506 of 750 - Onguday
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=onguday
+Processing City 507 of 750 - Megion
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=megion
+Processing City 508 of 750 - Kupino
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=kupino
+Processing City 509 of 750 - Boone
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=boone
+Processing City 510 of 750 - Bethanien
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=bethanien
+Processing City 511 of 750 - Marawi
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=marawi
+Processing City 512 of 750 - Laem Sing
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=laem%20sing
+Processing City 513 of 750 - Amalner
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=amalner
+Processing City 514 of 750 - Ayna
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=ayna
+Processing City 515 of 750 - Nelson
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=nelson
+Processing City 516 of 750 - George Town
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=george%20town
+Processing City 517 of 750 - Kokstad
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=kokstad
+Processing City 518 of 750 - Chirkey
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=chirkey
+Processing City 519 of 750 - Chik
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=chik
+Processing City 520 of 750 - Ferkessedougou
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=ferkessedougou
+Processing City 521 of 750 - Vernon
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=vernon
+Processing City 522 of 750 - Minna
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=minna
+Processing City 523 of 750 - Wilmington Island
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=wilmington%20island
+Processing City 524 of 750 - Imeni Poliny Osipenko
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=imeni%20poliny%20osipenko
+Processing City 525 of 750 - Rapid Valley
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=rapid%20valley
+Processing City 526 of 750 - Whitehaven
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=whitehaven
+Processing City 527 of 750 - Wanganui
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=wanganui
+Processing City 528 of 750 - Ketchikan
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=ketchikan
+Processing City 529 of 750 - Gwadar
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=gwadar
+Processing City 530 of 750 - San Patricio
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=san%20patricio
+Processing City 531 of 750 - Paramirim
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=paramirim
+Processing City 532 of 750 - Asenovgrad
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=asenovgrad
+Processing City 533 of 750 - Biltine
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=biltine
+Processing City 534 of 750 - Tumen
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=tumen
+Processing City 535 of 750 - Rodrigues Alves
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=rodrigues%20alves
+Processing City 536 of 750 - Hwange
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=hwange
+Processing City 537 of 750 - Tarancon
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=tarancon
+Processing City 538 of 750 - Santo Antonio Do Leverger
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=santo%20antonio%20do%20leverger
+Processing City 539 of 750 - San Ignacio
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=san%20ignacio
+Processing City 540 of 750 - Presidente Venceslau
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=presidente%20venceslau
+Processing City 541 of 750 - Gobo
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=gobo
+Processing City 542 of 750 - Madison
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=madison
+Processing City 543 of 750 - Lyubech
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=lyubech
+Processing City 544 of 750 - Woodward
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=woodward
+Processing City 545 of 750 - Garowe
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=garowe
+Processing City 546 of 750 - Butte
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=butte
+Processing City 547 of 750 - Hanzhong
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=hanzhong
+Processing City 548 of 750 - Sooke
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=sooke
+Processing City 549 of 750 - Yerofey Pavlovich
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=yerofey%20pavlovich
+Processing City 550 of 750 - Shirokiy
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=shirokiy
+Processing City 551 of 750 - Tamsweg
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=tamsweg
+Processing City 552 of 750 - La Seyne-Sur-Mer
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=la%20seyne-sur-mer
+Processing City 553 of 750 - Panama City
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=panama%20city
+Processing City 554 of 750 - Turgoyak
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=turgoyak
+Processing City 555 of 750 - Novobiryusinskiy
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=novobiryusinskiy
+Processing City 556 of 750 - Dodola
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=dodola
+Processing City 557 of 750 - Mitzic
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=mitzic
+Processing City 558 of 750 - Idil
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=idil
+Processing City 559 of 750 - Bialogard
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=bialogard
+Processing City 560 of 750 - Elk Point
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=elk%20point
+Processing City 561 of 750 - Erzurum
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=erzurum
+Processing City 562 of 750 - Mortka
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=mortka
+Processing City 563 of 750 - Nguruka
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=nguruka
+Processing City 564 of 750 - Sanghar
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=sanghar
+Processing City 565 of 750 - Jeremie
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=jeremie
+Processing City 566 of 750 - Susehri
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=susehri
+Processing City 567 of 750 - Sakakah
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=sakakah
+Processing City 568 of 750 - Albacete
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=albacete
+Processing City 569 of 750 - Tabarqah
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=tabarqah
+Processing City 570 of 750 - Grandview
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=grandview
+Processing City 571 of 750 - Don Sak
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=don%20sak
+Processing City 572 of 750 - Upernavik
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=upernavik
+Processing City 573 of 750 - Kalmar
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=kalmar
+Processing City 574 of 750 - Curuca
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=curuca
+Processing City 575 of 750 - Jumla
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=jumla
+Processing City 576 of 750 - Marfino
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=marfino
+Processing City 577 of 750 - Camacupa
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=camacupa
+Processing City 578 of 750 - Mirnyy
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=mirnyy
+Processing City 579 of 750 - Panguna
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=panguna
+Processing City 580 of 750 - El Alto
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=el%20alto
+Processing City 581 of 750 - Kentau
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=kentau
+Processing City 582 of 750 - Rancho Palos Verdes
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=rancho%20palos%20verdes
+Processing City 583 of 750 - Tekeli
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=tekeli
+Processing City 584 of 750 - Mpongwe
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=mpongwe
+Processing City 585 of 750 - Gorin
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=gorin
+Processing City 586 of 750 - Labytnangi
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=labytnangi
+Processing City 587 of 750 - Camara De Lobos
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=camara%20de%20lobos
+Processing City 588 of 750 - Kigoma
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=kigoma
+Processing City 589 of 750 - Eufaula
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=eufaula
+Processing City 590 of 750 - Hollins
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=hollins
+Processing City 591 of 750 - Abai
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=abai
+Processing City 592 of 750 - Netrakona
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=netrakona
+Processing City 593 of 750 - Calafat
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=calafat
+Processing City 594 of 750 - Pankrushikha
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=pankrushikha
+Processing City 595 of 750 - Susner
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=susner
+Processing City 596 of 750 - De-Kastri
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=de-kastri
+Processing City 597 of 750 - Schruns
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=schruns
+Processing City 598 of 750 - Anar Darreh
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=anar%20darreh
+Processing City 599 of 750 - Dong Hoi
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=dong%20hoi
+Processing City 600 of 750 - Soria
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=soria
+Processing City 601 of 750 - Viganello
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=viganello
+Processing City 602 of 750 - Zilupe
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=zilupe
+Processing City 603 of 750 - Petauke
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=petauke
+Processing City 604 of 750 - Autun
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=autun
+Processing City 605 of 750 - Sawakin
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=sawakin
+Processing City 606 of 750 - Mehamn
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=mehamn
+Processing City 607 of 750 - Paracuru
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=paracuru
+Processing City 608 of 750 - Bamora
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=bamora
+Processing City 609 of 750 - Picota
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=picota
+Processing City 610 of 750 - Szalkszentmarton
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=szalkszentmarton
+Processing City 611 of 750 - Tashara
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=tashara
+Processing City 612 of 750 - Orocue
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=orocue
+Processing City 613 of 750 - Starosubkhangulovo
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=starosubkhangulovo
+Processing City 614 of 750 - Arrifes
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=arrifes
+Processing City 615 of 750 - Challapata
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=challapata
+Processing City 616 of 750 - Richmond
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=richmond
+Processing City 617 of 750 - Xian
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=xian
+Processing City 618 of 750 - Pasighat
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=pasighat
+Processing City 619 of 750 - Rawah
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=rawah
+Processing City 620 of 750 - Samfya
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=samfya
+Processing City 621 of 750 - Hargeysa
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=hargeysa
+Processing City 622 of 750 - Barhi
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=barhi
+Processing City 623 of 750 - Bajos De Haina
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=bajos%20de%20haina
+Processing City 624 of 750 - Yerky
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=yerky
+Processing City 625 of 750 - San Fernando
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=san%20fernando
+Processing City 626 of 750 - Trincomalee
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=trincomalee
+Processing City 627 of 750 - Handwara
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=handwara
+Processing City 628 of 750 - Sriperumbudur
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=sriperumbudur
+Processing City 629 of 750 - Kalanguy
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=kalanguy
+Processing City 630 of 750 - Canon City
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=canon%20city
+Processing City 631 of 750 - Alenquer
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=alenquer
+Processing City 632 of 750 - Belmonte
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=belmonte
+Processing City 633 of 750 - Makurdi
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=makurdi
+Processing City 634 of 750 - Labuhan
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=labuhan
+Processing City 635 of 750 - Loikaw
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=loikaw
+Processing City 636 of 750 - Tena
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=tena
+Processing City 637 of 750 - Balimo
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=balimo
+Processing City 638 of 750 - Changde
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=changde
+Processing City 639 of 750 - Tiznit
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=tiznit
+Processing City 640 of 750 - Damietta
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=damietta
+Processing City 641 of 750 - Ambunti
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=ambunti
+Processing City 642 of 750 - Sataua
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=sataua
+Processing City 643 of 750 - Sayville
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=sayville
+Processing City 644 of 750 - Saint-Augustin
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=saint-augustin
+Processing City 645 of 750 - Lakhisarai
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=lakhisarai
+Processing City 646 of 750 - Putina
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=putina
+Processing City 647 of 750 - Rupert
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=rupert
+Processing City 648 of 750 - Stillwater
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=stillwater
+Processing City 649 of 750 - Gueret
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=gueret
+Processing City 650 of 750 - Lakes Entrance
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=lakes%20entrance
+Processing City 651 of 750 - Oistins
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=oistins
+Processing City 652 of 750 - Kisanga
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=kisanga
+Processing City 653 of 750 - La Plata
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=la%20plata
+Processing City 654 of 750 - Denizli
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=denizli
+Processing City 655 of 750 - Castle Douglas
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=castle%20douglas
+Processing City 656 of 750 - Quixada
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=quixada
+Processing City 657 of 750 - Khuchni
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=khuchni
+Processing City 658 of 750 - Pyapon
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=pyapon
+Processing City 659 of 750 - Camaragibe
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=camaragibe
+Processing City 660 of 750 - Caucaia
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=caucaia
+Processing City 661 of 750 - Santa Helena De Goias
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=santa%20helena%20de%20goias
+Processing City 662 of 750 - Daltenganj
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=daltenganj
+Processing City 663 of 750 - Mingguang
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=mingguang
+Processing City 664 of 750 - Praia
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=praia
+Processing City 665 of 750 - Sukhoy Log
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=sukhoy%20log
+Processing City 666 of 750 - Ocos
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=ocos
+Processing City 667 of 750 - Asuncion
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=asuncion
+Processing City 668 of 750 - Mmabatho
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=mmabatho
+Processing City 669 of 750 - Kaiu
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=kaiu
+Processing City 670 of 750 - Nueva Gerona
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=nueva%20gerona
+Processing City 671 of 750 - Pont-A-Mousson
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=pont-a-mousson
+Processing City 672 of 750 - Ouro Fino
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=ouro%20fino
+Processing City 673 of 750 - Xinyang
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=xinyang
+Processing City 674 of 750 - Panshi
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=panshi
+Processing City 675 of 750 - Melito Di Porto Salvo
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=melito%20di%20porto%20salvo
+Processing City 676 of 750 - Dianopolis
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=dianopolis
+Processing City 677 of 750 - Nikel
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=nikel
+Processing City 678 of 750 - Abay
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=abay
+Processing City 679 of 750 - Twin Falls
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=twin%20falls
+Processing City 680 of 750 - Benjamin Constant
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=benjamin%20constant
+Processing City 681 of 750 - Uige
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=uige
+Processing City 682 of 750 - Valdez
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=valdez
+Processing City 683 of 750 - Kotido
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=kotido
+Processing City 684 of 750 - Shush
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=shush
+Processing City 685 of 750 - Easton
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=easton
+Processing City 686 of 750 - Gusau
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=gusau
+Processing City 687 of 750 - Severnoye
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=severnoye
+Processing City 688 of 750 - Carahue
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=carahue
+Processing City 689 of 750 - Armacao Dos Buzios
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=armacao%20dos%20buzios
+Processing City 690 of 750 - Ladwa
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=ladwa
+Processing City 691 of 750 - Meaux
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=meaux
+Processing City 692 of 750 - Jaleswar
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=jaleswar
+Processing City 693 of 750 - Concord
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=concord
+Processing City 694 of 750 - Skibbereen
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=skibbereen
+Processing City 695 of 750 - Aksum
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=aksum
+Processing City 696 of 750 - Florida
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=florida
+Processing City 697 of 750 - Mambolo
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=mambolo
+Processing City 698 of 750 - Miracema Do Tocantins
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=miracema%20do%20tocantins
+Processing City 699 of 750 - Hojai
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=hojai
+Processing City 700 of 750 - Nurota
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=nurota
+Processing City 701 of 750 - Conway
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=conway
+Processing City 702 of 750 - Francisco Beltrao
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=francisco%20beltrao
+Processing City 703 of 750 - El Cobre
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=el%20cobre
+Processing City 704 of 750 - La Ronge
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=la%20ronge
+Processing City 705 of 750 - Kamina
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=kamina
+Processing City 706 of 750 - Malkapur
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=malkapur
+Processing City 707 of 750 - Valdobbiadene
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=valdobbiadene
+Processing City 708 of 750 - Mar Del Plata
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=mar%20del%20plata
+Processing City 709 of 750 - Vao
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=vao
+Processing City 710 of 750 - Mandalay
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=mandalay
+Processing City 711 of 750 - North Saint Paul
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=north%20saint%20paul
+Processing City 712 of 750 - Caohai
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=caohai
+Processing City 713 of 750 - Statesville
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=statesville
+Processing City 714 of 750 - Ljungby
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=ljungby
+Processing City 715 of 750 - Burriana
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=burriana
+Processing City 716 of 750 - Ibicui
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=ibicui
+Processing City 717 of 750 - Chalmette
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=chalmette
+Processing City 718 of 750 - Obeliai
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=obeliai
+Processing City 719 of 750 - Dujuma
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=dujuma
+Processing City 720 of 750 - Lorengau
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=lorengau
+Processing City 721 of 750 - Taksimo
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=taksimo
+Processing City 722 of 750 - Karwar
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=karwar
+Processing City 723 of 750 - Naftah
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=naftah
+Processing City 724 of 750 - Xinyu
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=xinyu
+Processing City 725 of 750 - Saint Pete Beach
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=saint%20pete%20beach
+Processing City 726 of 750 - Madarounfa
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=madarounfa
+Processing City 727 of 750 - Pascagoula
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=pascagoula
+Processing City 728 of 750 - Canto Do Buriti
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=canto%20do%20buriti
+Processing City 729 of 750 - Francistown
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=francistown
+Processing City 730 of 750 - Skegness
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=skegness
+Processing City 731 of 750 - Gubkinskiy
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=gubkinskiy
+Processing City 732 of 750 - Teno
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=teno
+Processing City 733 of 750 - Olonets
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=olonets
+Processing City 734 of 750 - Suarez
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=suarez
+Processing City 735 of 750 - Narasannapeta
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=narasannapeta
+Processing City 736 of 750 - Khuldabad
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=khuldabad
+Processing City 737 of 750 - Bogande
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=bogande
+Processing City 738 of 750 - General Pico
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=general%20pico
+Processing City 739 of 750 - Road Town
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=road%20town
+Processing City 740 of 750 - Guhagar
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=guhagar
+Processing City 741 of 750 - Fougamou
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=fougamou
+Processing City 742 of 750 - Ourossogui
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=ourossogui
+Processing City 743 of 750 - Marica
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=marica
+Processing City 744 of 750 - Yanam
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=yanam
+Processing City 745 of 750 - Da Lat
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=da%20lat
+Processing City 746 of 750 - Szentlorinc
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=szentlorinc
+Processing City 747 of 750 - Lidkoping
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=lidkoping
+Processing City 748 of 750 - Bolshaya Chernigovka
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=bolshaya%20chernigovka
+Processing City 749 of 750 - Tiarei
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=tiarei
+Processing City 750 of 750 - Sun Valley
+http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=sun%20valley
+-------------------------------
+Data Retrieval Complete
+-------------------------------
+
+```
+
+
+```python
+#Clean up & save as CSV file
+sampled_cities = sampled_cities.dropna()
+sampled_cities.to_csv("weatherpy_data.csv")
+sampled_cities.count(axis = 0)
+```
+
+
+
+
+    City          625
+    Lat           625
+    Lng           625
+    Country       625
+    Date          625
+    Max Temp      625
+    Humidity      625
+    Cloudiness    625
+    Wind Speed    625
+    dtype: int64
+
+
+
+
+```python
+sampled_cities.head()
+
+```
+
+
+
+
+<div>
+<style>
+    .dataframe thead tr:only-child th {
+        text-align: right;
+    }
+
+    .dataframe thead th {
+        text-align: left;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>City</th>
+      <th>Lat</th>
+      <th>Lng</th>
+      <th>Country</th>
+      <th>Date</th>
+      <th>Max Temp</th>
+      <th>Humidity</th>
+      <th>Cloudiness</th>
+      <th>Wind Speed</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>1</th>
+      <td>seredka</td>
+      <td>58.16</td>
+      <td>28.19</td>
+      <td>RU</td>
+      <td>1513834200</td>
+      <td>28.4</td>
+      <td>92</td>
+      <td>90</td>
+      <td>11.18</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>nikolayevsk-na-amure</td>
+      <td>53.14</td>
+      <td>140.73</td>
+      <td>RU</td>
+      <td>1513836148</td>
+      <td>2.63</td>
+      <td>76</td>
+      <td>32</td>
+      <td>9.33</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>qingdao</td>
+      <td>36.1</td>
+      <td>120.37</td>
+      <td>CN</td>
+      <td>1513832400</td>
+      <td>48.2</td>
+      <td>24</td>
+      <td>0</td>
+      <td>6.71</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>kumukh</td>
+      <td>42.17</td>
+      <td>47.12</td>
+      <td>RU</td>
+      <td>1513836148</td>
+      <td>24.86</td>
+      <td>74</td>
+      <td>8</td>
+      <td>1.16</td>
+    </tr>
+    <tr>
+      <th>5</th>
+      <td>were ilu</td>
+      <td>10.6</td>
+      <td>39.43</td>
+      <td>ET</td>
+      <td>1513836149</td>
+      <td>48.84</td>
+      <td>42</td>
+      <td>0</td>
+      <td>1.95</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+
+
+# Latitude vs Temperature Plot
+
+
+```python
+sampled_cities.plot(kind="scatter", x="Lat", y="Max Temp",
+                    grid=True, color="blue", edgecolor = "black", s =150, linewidth = 2, 
+                    figsize =(20, 15))
+plt.title('City Latitude vs. Max Temperature (12/21/17)', fontsize = 30)
+plt.ylabel('Max Temperature (F)',  fontsize = 25)
+plt.xlabel('Latitude', fontsize = 25)
+plt.grid(True)
+plt.xlim(-80, 80)
+plt.ylim(-60, 120)
+plt.tick_params(labelsize=20)
+plt.show()
+plt.savefig('latitude_temp')
+```
+
+
+![png](output_11_0.png)
+
+
+# Latitude vs. Humidity Plot
+
+
+```python
+sampled_cities.plot(kind="scatter",x="Lat",y="Humidity",
+                    grid=True, color="blue", edgecolor = "black", s =150, linewidth = 2, 
+                    figsize =(20, 15))
+plt.title('City Latitude vs. Humidity (12/21/17)', fontsize = 30)
+plt.ylabel('Humidity (%)', fontsize = 25)
+plt.xlabel('Latitude', fontsize = 25)
+plt.grid(True)
+plt.xlim(-80, 80)
+plt.ylim(-20, 120)
+plt.tick_params(labelsize=20)
+plt.show()
+plt.savefig('latitude_humidity')
+```
+
+
+    <matplotlib.figure.Figure at 0x11dd53c18>
+
+
+
+![png](output_13_1.png)
+
+
+# Latitude vs. Cloudiness Plot
+
+
+```python
+sampled_cities.plot(kind="scatter",x="Lat",y="Cloudiness",
+                    grid=True, color="blue", edgecolor = "black", s =150, linewidth = 2, 
+                    figsize =(20, 15))
+plt.title('City Latitude vs. Cloudiness (12/21/17)', fontsize = 30)
+plt.ylabel('Cloudiness (%)', fontsize = 25)
+plt.xlabel('Latitude', fontsize = 25)
+plt.grid(True)
+plt.xlim(-80, 80)
+plt.ylim(-20, 120)
+plt.tick_params(labelsize=20)
+plt.show()
+plt.savefig('latitude_cloudiness')
+```
+
+
+    <matplotlib.figure.Figure at 0x11e8844e0>
+
+
+
+![png](output_15_1.png)
+
+
+# Latitude vs. Wind Speed Plot
+
+
+```python
+sampled_cities.plot(kind="scatter",x="Lat",y="Wind Speed",
+                    grid=True, color="blue", edgecolor = "black", s =150, linewidth = 2, 
+                    figsize =(20, 15))
+plt.title('City Latitude vs. Wind Speed (12/21/17)', fontsize = 30)
+plt.ylabel('Wind Speed (mph)', fontsize = 25)
+plt.xlabel('Latitude', fontsize = 25)
+plt.grid(True)
+plt.xlim(-80, 80)
+plt.ylim(-10, 40)
+plt.tick_params(labelsize=20)
+plt.show()
+plt.savefig('latitude_windspeed')
+```
+
+
+    <matplotlib.figure.Figure at 0x11e852c18>
+
+
+
+![png](output_17_1.png)
+
+
+
+
+
+{
+ "cells": [
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "# Observed Trends\n",
+    "1) The max temperature are near the equator. When the latitude increases (towards North pole) or decreases (toward South pole), the max temperature drops. \n",
+    "\n",
+    "2) Humidity and cloudiness do not seem to be correlated to latitude as there is a relatively uniform spread across the different latitude points. \n",
+    "\n",
+    "3) The majority of cities have a wind speed under 20 mph. "
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 11,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "Requirement already satisfied: citipy in c:\\programdata\\anaconda3\\lib\\site-packages (0.0.5)\n",
+      "Requirement already satisfied: kdtree>=0.12 in c:\\programdata\\anaconda3\\lib\\site-packages (from citipy) (0.16)\n"
+     ]
+    }
+   ],
+   "source": [
+    "#Dependencies\n",
+    "import numpy as np\n",
+    "import pandas as pd\n",
+    "import matplotlib.pyplot as plt\n",
+    "import requests\n",
+    "import time\n",
+    "import random\n",
+    "!pip install citipy\n",
+    "from citipy import citipy\n",
+    "from config import api_key\n",
+    "#set style for plots\n",
+    "plt.style.use('seaborn-talk')\n"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "# Representative Sample"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#Creating list of lats/lngs\n",
+    "lats = range(-90, 90)\n",
+    "lngs = range(-180, 180)\n",
+    "city_list = []\n",
+    "for lat in lats:\n",
+    "    for lng in lngs:\n",
+    "        city = citipy.nearest_city(lat, lng)\n",
+    "        city_name = city.city_name\n",
+    "        city_list.append(city_name)\n",
+    "\n",
+    "# Do some cleaning (remove duplicates)\n",
+    "city_df = pd.DataFrame(city_list)\n",
+    "new_city_df = city_df.drop_duplicates()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 3,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/html": [
+       "<div>\n",
+       "<style scoped>\n",
+       "    .dataframe tbody tr th:only-of-type {\n",
+       "        vertical-align: middle;\n",
+       "    }\n",
+       "\n",
+       "    .dataframe tbody tr th {\n",
+       "        vertical-align: top;\n",
+       "    }\n",
+       "\n",
+       "    .dataframe thead th {\n",
+       "        text-align: right;\n",
+       "    }\n",
+       "</style>\n",
+       "<table border=\"1\" class=\"dataframe\">\n",
+       "  <thead>\n",
+       "    <tr style=\"text-align: right;\">\n",
+       "      <th></th>\n",
+       "      <th>City</th>\n",
+       "      <th>Lat</th>\n",
+       "      <th>Lng</th>\n",
+       "      <th>Country</th>\n",
+       "      <th>Date</th>\n",
+       "      <th>Max Temp(°F)</th>\n",
+       "      <th>Humidity(%)</th>\n",
+       "      <th>Cloudiness(%)</th>\n",
+       "      <th>Wind Speed(mph)</th>\n",
+       "    </tr>\n",
+       "  </thead>\n",
+       "  <tbody>\n",
+       "    <tr>\n",
+       "      <th>1</th>\n",
+       "      <td>smithers</td>\n",
+       "      <td></td>\n",
+       "      <td></td>\n",
+       "      <td></td>\n",
+       "      <td></td>\n",
+       "      <td></td>\n",
+       "      <td></td>\n",
+       "      <td></td>\n",
+       "      <td></td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>2</th>\n",
+       "      <td>tirat karmel</td>\n",
+       "      <td></td>\n",
+       "      <td></td>\n",
+       "      <td></td>\n",
+       "      <td></td>\n",
+       "      <td></td>\n",
+       "      <td></td>\n",
+       "      <td></td>\n",
+       "      <td></td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>3</th>\n",
+       "      <td>igrim</td>\n",
+       "      <td></td>\n",
+       "      <td></td>\n",
+       "      <td></td>\n",
+       "      <td></td>\n",
+       "      <td></td>\n",
+       "      <td></td>\n",
+       "      <td></td>\n",
+       "      <td></td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>4</th>\n",
+       "      <td>santa rosa</td>\n",
+       "      <td></td>\n",
+       "      <td></td>\n",
+       "      <td></td>\n",
+       "      <td></td>\n",
+       "      <td></td>\n",
+       "      <td></td>\n",
+       "      <td></td>\n",
+       "      <td></td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>5</th>\n",
+       "      <td>cavalcante</td>\n",
+       "      <td></td>\n",
+       "      <td></td>\n",
+       "      <td></td>\n",
+       "      <td></td>\n",
+       "      <td></td>\n",
+       "      <td></td>\n",
+       "      <td></td>\n",
+       "      <td></td>\n",
+       "    </tr>\n",
+       "  </tbody>\n",
+       "</table>\n",
+       "</div>"
+      ],
+      "text/plain": [
+       "           City Lat Lng Country Date Max Temp(°F)  Humidity(%) Cloudiness(%)  \\\n",
+       "1      smithers                                                                \n",
+       "2  tirat karmel                                                                \n",
+       "3         igrim                                                                \n",
+       "4    santa rosa                                                                \n",
+       "5    cavalcante                                                                \n",
+       "\n",
+       "  Wind Speed(mph)  \n",
+       "1                  \n",
+       "2                  \n",
+       "3                  \n",
+       "4                  \n",
+       "5                  "
+      ]
+     },
+     "execution_count": 3,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "#Extracting sample cities\n",
+    "city_samples = new_city_df.sample(750)\n",
+    "city_samples = city_samples.reset_index(drop = True)\n",
+    "city_samples.columns = [\"City\"]\n",
+    "city_samples.index += 1 \n",
+    "city_samples[\"Lat\"] = \"\"\n",
+    "city_samples[\"Lng\"] = \"\"\n",
+    "city_samples[\"Country\"] = \"\"\n",
+    "city_samples[\"Date\"] = \"\"\n",
+    "city_samples[\"Max Temp(°F) \"] = \"\"\n",
+    "city_samples[\"Humidity(%)\"] = \"\"\n",
+    "city_samples[\"Cloudiness(%)\"] = \"\"\n",
+    "city_samples[\"Wind Speed(mph)\"] = \"\"\n",
+    "city_samples.head()"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "# OpenWeatherMap API Weather Check"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 4,
+   "metadata": {
+    "scrolled": false
+   },
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "Beginning Data Retrieval\n",
+      "-------------------------------\n"
+     ]
+    },
+    {
+     "name": "stderr",
+     "output_type": "stream",
+     "text": [
+      "C:\\ProgramData\\Anaconda3\\lib\\site-packages\\ipykernel_launcher.py:9: FutureWarning: set_value is deprecated and will be removed in a future release. Please use .at[] or .iat[] accessors instead\n",
+      "  if __name__ == '__main__':\n",
+      "C:\\ProgramData\\Anaconda3\\lib\\site-packages\\ipykernel_launcher.py:10: FutureWarning: set_value is deprecated and will be removed in a future release. Please use .at[] or .iat[] accessors instead\n",
+      "  # Remove the CWD from sys.path while we load stuff.\n",
+      "C:\\ProgramData\\Anaconda3\\lib\\site-packages\\ipykernel_launcher.py:11: FutureWarning: set_value is deprecated and will be removed in a future release. Please use .at[] or .iat[] accessors instead\n",
+      "  # This is added back by InteractiveShellApp.init_path()\n",
+      "C:\\ProgramData\\Anaconda3\\lib\\site-packages\\ipykernel_launcher.py:12: FutureWarning: set_value is deprecated and will be removed in a future release. Please use .at[] or .iat[] accessors instead\n",
+      "  if sys.path[0] == '':\n",
+      "C:\\ProgramData\\Anaconda3\\lib\\site-packages\\ipykernel_launcher.py:13: FutureWarning: set_value is deprecated and will be removed in a future release. Please use .at[] or .iat[] accessors instead\n",
+      "  del sys.path[0]\n",
+      "C:\\ProgramData\\Anaconda3\\lib\\site-packages\\ipykernel_launcher.py:14: FutureWarning: set_value is deprecated and will be removed in a future release. Please use .at[] or .iat[] accessors instead\n",
+      "  \n",
+      "C:\\ProgramData\\Anaconda3\\lib\\site-packages\\ipykernel_launcher.py:15: FutureWarning: set_value is deprecated and will be removed in a future release. Please use .at[] or .iat[] accessors instead\n",
+      "  from ipykernel import kernelapp as app\n",
+      "C:\\ProgramData\\Anaconda3\\lib\\site-packages\\ipykernel_launcher.py:16: FutureWarning: set_value is deprecated and will be removed in a future release. Please use .at[] or .iat[] accessors instead\n",
+      "  app.launch_new_instance()\n"
+     ]
+    },
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "Processing City 1 of 750 - Smithers\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=smithers\n",
+      "Processing City 2 of 750 - Tirat Karmel\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=tirat%20karmel\n",
+      "Processing City 3 of 750 - Igrim\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=igrim\n",
+      "Processing City 4 of 750 - Santa Rosa\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=santa%20rosa\n",
+      "Processing City 5 of 750 - Cavalcante\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=cavalcante\n",
+      "Processing City 6 of 750 - Lazo\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=lazo\n",
+      "Processing City 7 of 750 - Chodziez\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=chodziez\n",
+      "Processing City 8 of 750 - Zlobin\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=zlobin\n",
+      "Processing City 9 of 750 - Zhongshu\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=zhongshu\n",
+      "Processing City 10 of 750 - Serra\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=serra\n",
+      "Processing City 11 of 750 - Vygonichi\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=vygonichi\n",
+      "Processing City 12 of 750 - Lagos\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=lagos\n",
+      "Processing City 13 of 750 - Powell River\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=powell%20river\n",
+      "Processing City 14 of 750 - Safwah\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=safwah\n",
+      "Processing City 15 of 750 - Midland\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=midland\n",
+      "Processing City 16 of 750 - Brasileia\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=brasileia\n",
+      "Processing City 17 of 750 - Badvel\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=badvel\n",
+      "Processing City 18 of 750 - Anna Paulowna\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=anna%20paulowna\n",
+      "Processing City 19 of 750 - Pa Sang\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=pa%20sang\n",
+      "Processing City 20 of 750 - Nosy Varika\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=nosy%20varika\n",
+      "Processing City 21 of 750 - Kysyl-Syr\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=kysyl-syr\n",
+      "Processing City 22 of 750 - Quzhou\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=quzhou\n",
+      "Processing City 23 of 750 - Corpus Christi\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=corpus%20christi\n",
+      "Processing City 24 of 750 - Bella Union\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=bella%20union\n",
+      "Processing City 25 of 750 - Pirgos\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=pirgos\n",
+      "Processing City 26 of 750 - Maningrida\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=maningrida\n",
+      "Processing City 27 of 750 - Jucurutu\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=jucurutu\n",
+      "Processing City 28 of 750 - Rach Gia\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=rach%20gia\n",
+      "Processing City 29 of 750 - Tarnow\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=tarnow\n",
+      "Processing City 30 of 750 - Los Alamos\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=los%20alamos\n",
+      "Processing City 31 of 750 - Grimshaw\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=grimshaw\n",
+      "Processing City 32 of 750 - Ifakara\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=ifakara\n",
+      "Processing City 33 of 750 - Nynashamn\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=nynashamn\n",
+      "Processing City 34 of 750 - Sao Geraldo Do Araguaia\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=sao%20geraldo%20do%20araguaia\n",
+      "Processing City 35 of 750 - Rio Grande\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=rio%20grande\n",
+      "Processing City 36 of 750 - Mudbidri\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=mudbidri\n",
+      "Processing City 37 of 750 - Bondoukou\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=bondoukou\n",
+      "Processing City 38 of 750 - Windsor\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=windsor\n",
+      "Processing City 39 of 750 - Rajo Khanani\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=rajo%20khanani\n",
+      "Processing City 40 of 750 - Cienaga\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=cienaga\n",
+      "Processing City 41 of 750 - Neuruppin\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=neuruppin\n",
+      "Processing City 42 of 750 - Smolensk\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=smolensk\n",
+      "Processing City 43 of 750 - Mega\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=mega\n",
+      "Processing City 44 of 750 - Plouzane\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=plouzane\n",
+      "Processing City 45 of 750 - Dawei\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=dawei\n",
+      "Processing City 46 of 750 - Kamiiso\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=kamiiso\n",
+      "Processing City 47 of 750 - Gordeyevka\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=gordeyevka\n",
+      "Processing City 48 of 750 - Darlawn\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=darlawn\n",
+      "Processing City 49 of 750 - Khagrachari\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=khagrachari\n",
+      "Processing City 50 of 750 - Kankaanpaa\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=kankaanpaa\n",
+      "Processing City 51 of 750 - Stavropol\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=stavropol\n",
+      "Processing City 52 of 750 - Newport\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=newport\n",
+      "Processing City 53 of 750 - Lunenburg\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=lunenburg\n",
+      "Processing City 54 of 750 - North Myrtle Beach\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=north%20myrtle%20beach\n",
+      "Processing City 55 of 750 - Wencheng\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=wencheng\n",
+      "Processing City 56 of 750 - Sokoni\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=sokoni\n",
+      "Processing City 57 of 750 - Yuzhno-Kurilsk\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=yuzhno-kurilsk\n",
+      "Processing City 58 of 750 - Muyezerskiy\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=muyezerskiy\n",
+      "Processing City 59 of 750 - Pimentel\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=pimentel\n",
+      "Processing City 60 of 750 - Aviles\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=aviles\n",
+      "Processing City 61 of 750 - Moundsville\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=moundsville\n",
+      "Processing City 62 of 750 - Cervo\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=cervo\n",
+      "Processing City 63 of 750 - Cabras\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=cabras\n",
+      "Processing City 64 of 750 - Seydi\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=seydi\n",
+      "Processing City 65 of 750 - Suileng\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=suileng\n",
+      "Processing City 66 of 750 - Garden Acres\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=garden%20acres\n"
+     ]
+    },
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "Processing City 67 of 750 - Tomelloso\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=tomelloso\n",
+      "Processing City 68 of 750 - Nigde\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=nigde\n",
+      "Processing City 69 of 750 - Kaili\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=kaili\n",
+      "Processing City 70 of 750 - Mitu\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=mitu\n",
+      "Processing City 71 of 750 - Suwalki\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=suwalki\n",
+      "Processing City 72 of 750 - Makkaveyevo\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=makkaveyevo\n",
+      "Processing City 73 of 750 - Ahar\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=ahar\n",
+      "Processing City 74 of 750 - Nakhon Phanom\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=nakhon%20phanom\n",
+      "Processing City 75 of 750 - Bow Island\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=bow%20island\n",
+      "Processing City 76 of 750 - Simbahan\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=simbahan\n",
+      "Processing City 77 of 750 - El Dorado\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=el%20dorado\n",
+      "Processing City 78 of 750 - Kinanah\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=kinanah\n",
+      "Processing City 79 of 750 - Saint-Jean-De-Braye\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=saint-jean-de-braye\n",
+      "Processing City 80 of 750 - Senj\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=senj\n",
+      "Processing City 81 of 750 - Gombong\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=gombong\n",
+      "Processing City 82 of 750 - Bitam\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=bitam\n",
+      "Processing City 83 of 750 - Mpika\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=mpika\n",
+      "Processing City 84 of 750 - Las Cruces\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=las%20cruces\n",
+      "Processing City 85 of 750 - Ganganagar\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=ganganagar\n",
+      "Processing City 86 of 750 - Duminichi\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=duminichi\n",
+      "Processing City 87 of 750 - Snasa\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=snasa\n",
+      "Processing City 88 of 750 - Uray\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=uray\n",
+      "Processing City 89 of 750 - Rutigliano\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=rutigliano\n",
+      "Processing City 90 of 750 - Hazleton\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=hazleton\n",
+      "Processing City 91 of 750 - Lewistown\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=lewistown\n",
+      "Processing City 92 of 750 - Massaguet\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=massaguet\n",
+      "Processing City 93 of 750 - Danilov\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=danilov\n",
+      "Processing City 94 of 750 - Geresk\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=geresk\n",
+      "Processing City 95 of 750 - Alpena\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=alpena\n",
+      "Processing City 96 of 750 - Quebo\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=quebo\n",
+      "Processing City 97 of 750 - Mergui\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=mergui\n",
+      "Processing City 98 of 750 - Kabalo\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=kabalo\n",
+      "Processing City 99 of 750 - Marau\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=marau\n",
+      "Processing City 100 of 750 - Uarini\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=uarini\n",
+      "Processing City 101 of 750 - Cerinza\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=cerinza\n",
+      "Processing City 102 of 750 - Petropavlovsk-Kamchatskiy\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=petropavlovsk-kamchatskiy\n",
+      "Processing City 103 of 750 - Kyaikto\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=kyaikto\n",
+      "Processing City 104 of 750 - Vila Do Maio\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=vila%20do%20maio\n",
+      "Processing City 105 of 750 - Mankono\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=mankono\n",
+      "Processing City 106 of 750 - Barrow\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=barrow\n",
+      "Processing City 107 of 750 - Bubaque\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=bubaque\n",
+      "Processing City 108 of 750 - Zhanakorgan\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=zhanakorgan\n",
+      "Processing City 109 of 750 - Buriti Alegre\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=buriti%20alegre\n",
+      "Processing City 110 of 750 - Ximei\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=ximei\n",
+      "Processing City 111 of 750 - Werneck\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=werneck\n",
+      "Processing City 112 of 750 - Arkhara\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=arkhara\n",
+      "Processing City 113 of 750 - Nemuro\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=nemuro\n",
+      "Processing City 114 of 750 - Butler\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=butler\n",
+      "Processing City 115 of 750 - Primo Tapia\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=primo%20tapia\n",
+      "Processing City 116 of 750 - Kidal\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=kidal\n",
+      "Processing City 117 of 750 - Bang Saphan\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=bang%20saphan\n",
+      "Processing City 118 of 750 - Arona\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=arona\n",
+      "Processing City 119 of 750 - Nawa\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=nawa\n",
+      "Processing City 120 of 750 - Huangmei\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=huangmei\n",
+      "Processing City 121 of 750 - Lobito\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=lobito\n",
+      "Processing City 122 of 750 - Mairana\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=mairana\n",
+      "Processing City 123 of 750 - Kahone\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=kahone\n",
+      "Processing City 124 of 750 - Tunduru\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=tunduru\n",
+      "Processing City 125 of 750 - Guiyang\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=guiyang\n",
+      "Processing City 126 of 750 - Willmar\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=willmar\n",
+      "Processing City 127 of 750 - Truth Or Consequences\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=truth%20or%20consequences\n",
+      "Processing City 128 of 750 - Zanesville\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=zanesville\n",
+      "Processing City 129 of 750 - Sesheke\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=sesheke\n",
+      "Processing City 130 of 750 - Vikulovo\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=vikulovo\n",
+      "Processing City 131 of 750 - Santa Fe\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=santa%20fe\n",
+      "Processing City 132 of 750 - Shevchenkove\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=shevchenkove\n"
+     ]
+    },
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "Processing City 133 of 750 - Shetpe\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=shetpe\n",
+      "Processing City 134 of 750 - Ust-Kalmanka\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=ust-kalmanka\n",
+      "Processing City 135 of 750 - Phalombe\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=phalombe\n",
+      "Processing City 136 of 750 - Orange\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=orange\n",
+      "Processing City 137 of 750 - Canmore\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=canmore\n",
+      "Processing City 138 of 750 - Frederiksvaerk\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=frederiksvaerk\n",
+      "Processing City 139 of 750 - Gillette\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=gillette\n",
+      "Processing City 140 of 750 - Kem\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=kem\n",
+      "Processing City 141 of 750 - Gemena\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=gemena\n",
+      "Processing City 142 of 750 - Rudnogorsk\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=rudnogorsk\n",
+      "Processing City 143 of 750 - That Phanom\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=that%20phanom\n",
+      "Processing City 144 of 750 - Delvine\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=delvine\n",
+      "Processing City 145 of 750 - Polovinnoye\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=polovinnoye\n",
+      "Processing City 146 of 750 - Manosque\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=manosque\n",
+      "Processing City 147 of 750 - Chinique\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=chinique\n",
+      "Processing City 148 of 750 - Qandala\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=qandala\n",
+      "Processing City 149 of 750 - Hansi\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=hansi\n",
+      "Processing City 150 of 750 - Caramoran\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=caramoran\n",
+      "Processing City 151 of 750 - Eyl\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=eyl\n",
+      "Processing City 152 of 750 - Malm\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=malm\n",
+      "Processing City 153 of 750 - Manaia\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=manaia\n",
+      "Processing City 154 of 750 - Montrose\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=montrose\n",
+      "Processing City 155 of 750 - Swan River\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=swan%20river\n",
+      "Processing City 156 of 750 - Poyarkovo\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=poyarkovo\n",
+      "Processing City 157 of 750 - Angermunde\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=angermunde\n",
+      "Processing City 158 of 750 - Hit\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=hit\n",
+      "Processing City 159 of 750 - Muslyumovo\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=muslyumovo\n",
+      "Processing City 160 of 750 - Ishlei\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=ishlei\n",
+      "Processing City 161 of 750 - Salekhard\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=salekhard\n",
+      "Processing City 162 of 750 - Kuandian\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=kuandian\n",
+      "Processing City 163 of 750 - Vendome\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=vendome\n",
+      "Processing City 164 of 750 - Choucheng\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=choucheng\n",
+      "Processing City 165 of 750 - New Ulm\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=new%20ulm\n",
+      "Processing City 166 of 750 - Haripur\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=haripur\n",
+      "Processing City 167 of 750 - Mantua\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=mantua\n",
+      "Processing City 168 of 750 - Aleksandrov Gay\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=aleksandrov%20gay\n",
+      "Processing City 169 of 750 - Serebryanyy Bor\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=serebryanyy%20bor\n",
+      "Processing City 170 of 750 - Emerald\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=emerald\n",
+      "Processing City 171 of 750 - Morris\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=morris\n",
+      "Processing City 172 of 750 - Awjilah\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=awjilah\n",
+      "Processing City 173 of 750 - Epernay\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=epernay\n",
+      "Processing City 174 of 750 - Etla\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=etla\n",
+      "Processing City 175 of 750 - Capao Bonito\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=capao%20bonito\n",
+      "Processing City 176 of 750 - Pervomayskiy\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=pervomayskiy\n",
+      "Processing City 177 of 750 - Steinbach\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=steinbach\n",
+      "Processing City 178 of 750 - Itapora\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=itapora\n",
+      "Processing City 179 of 750 - Sinjar\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=sinjar\n",
+      "Processing City 180 of 750 - Kumano\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=kumano\n",
+      "Processing City 181 of 750 - Belyy\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=belyy\n",
+      "Processing City 182 of 750 - Wahpeton\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=wahpeton\n",
+      "Processing City 183 of 750 - Kaitangata\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=kaitangata\n",
+      "Processing City 184 of 750 - Ojhar\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=ojhar\n",
+      "Processing City 185 of 750 - Gbadolite\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=gbadolite\n",
+      "Processing City 186 of 750 - Adre\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=adre\n",
+      "Processing City 187 of 750 - Peniche\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=peniche\n",
+      "Processing City 188 of 750 - Beloha\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=beloha\n",
+      "Processing City 189 of 750 - Stryn\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=stryn\n",
+      "Processing City 190 of 750 - Saint-Raphael\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=saint-raphael\n",
+      "Processing City 191 of 750 - Sakti\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=sakti\n",
+      "Processing City 192 of 750 - Mason City\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=mason%20city\n",
+      "Processing City 193 of 750 - Hecelchakan\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=hecelchakan\n",
+      "Processing City 194 of 750 - Zelenogorskiy\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=zelenogorskiy\n",
+      "Processing City 195 of 750 - Ichhawar\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=ichhawar\n",
+      "Processing City 196 of 750 - Kirensk\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=kirensk\n",
+      "Processing City 197 of 750 - Kinsale\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=kinsale\n",
+      "Processing City 198 of 750 - Miram Shah\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=miram%20shah\n",
+      "Processing City 199 of 750 - Bustonkala\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=bustonkala\n"
+     ]
+    },
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "Processing City 200 of 750 - La Peca\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=la%20peca\n",
+      "Processing City 201 of 750 - Diofior\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=diofior\n",
+      "Processing City 202 of 750 - Nyamuswa\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=nyamuswa\n",
+      "Processing City 203 of 750 - Huron\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=huron\n",
+      "Processing City 204 of 750 - Manono\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=manono\n",
+      "Processing City 205 of 750 - Rumoi\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=rumoi\n",
+      "Processing City 206 of 750 - Argentan\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=argentan\n",
+      "Processing City 207 of 750 - Linchuan\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=linchuan\n",
+      "Processing City 208 of 750 - Tzucacab\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=tzucacab\n",
+      "Processing City 209 of 750 - Hondo\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=hondo\n",
+      "Processing City 210 of 750 - Lowestoft\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=lowestoft\n",
+      "Processing City 211 of 750 - Ruswil\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=ruswil\n",
+      "Processing City 212 of 750 - Holice\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=holice\n",
+      "Processing City 213 of 750 - Kez\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=kez\n",
+      "Processing City 214 of 750 - Sangin\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=sangin\n",
+      "Processing City 215 of 750 - Colonial Heights\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=colonial%20heights\n",
+      "Processing City 216 of 750 - Zhengjiatun\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=zhengjiatun\n",
+      "Processing City 217 of 750 - Qujing\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=qujing\n",
+      "Processing City 218 of 750 - Mahajanga\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=mahajanga\n",
+      "Processing City 219 of 750 - Mudon\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=mudon\n",
+      "Processing City 220 of 750 - Kargasok\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=kargasok\n",
+      "Processing City 221 of 750 - Urubicha\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=urubicha\n",
+      "Processing City 222 of 750 - Kazachinskoye\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=kazachinskoye\n",
+      "Processing City 223 of 750 - Melita\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=melita\n",
+      "Processing City 224 of 750 - Arkadelphia\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=arkadelphia\n",
+      "Processing City 225 of 750 - Bordighera\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=bordighera\n",
+      "Processing City 226 of 750 - San Narciso\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=san%20narciso\n",
+      "Processing City 227 of 750 - Gagnoa\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=gagnoa\n",
+      "Processing City 228 of 750 - Olbia\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=olbia\n",
+      "Processing City 229 of 750 - Posse\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=posse\n",
+      "Processing City 230 of 750 - Sandpoint\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=sandpoint\n",
+      "Processing City 231 of 750 - Vanimo\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=vanimo\n",
+      "Processing City 232 of 750 - Santa Teresa\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=santa%20teresa\n",
+      "Processing City 233 of 750 - Xuanhua\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=xuanhua\n",
+      "Processing City 234 of 750 - Point Pleasant\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=point%20pleasant\n",
+      "Processing City 235 of 750 - Fushe-Arrez\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=fushe-arrez\n",
+      "Processing City 236 of 750 - Nanortalik\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=nanortalik\n",
+      "Processing City 237 of 750 - Batken\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=batken\n",
+      "Processing City 238 of 750 - Micheweni\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=micheweni\n",
+      "Processing City 239 of 750 - Les Escoumins\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=les%20escoumins\n",
+      "Processing City 240 of 750 - Masindi\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=masindi\n",
+      "Processing City 241 of 750 - Badulla\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=badulla\n",
+      "Processing City 242 of 750 - Carbonear\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=carbonear\n",
+      "Processing City 243 of 750 - Werda\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=werda\n",
+      "Processing City 244 of 750 - Barra\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=barra\n",
+      "Processing City 245 of 750 - Almeirim\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=almeirim\n",
+      "Processing City 246 of 750 - Caramay\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=caramay\n",
+      "Processing City 247 of 750 - Thurso\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=thurso\n",
+      "Processing City 248 of 750 - Salina\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=salina\n",
+      "Processing City 249 of 750 - San Angelo\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=san%20angelo\n",
+      "Processing City 250 of 750 - Pokrovsk\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=pokrovsk\n",
+      "Processing City 251 of 750 - Synya\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=synya\n",
+      "Processing City 252 of 750 - Kosjeric\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=kosjeric\n",
+      "Processing City 253 of 750 - Sinait\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=sinait\n",
+      "Processing City 254 of 750 - Manica\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=manica\n",
+      "Processing City 255 of 750 - Nkongsamba\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=nkongsamba\n",
+      "Processing City 256 of 750 - Sveti Nikole\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=sveti%20nikole\n",
+      "Processing City 257 of 750 - Stulovo\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=stulovo\n",
+      "Processing City 258 of 750 - Dzaoudzi\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=dzaoudzi\n",
+      "Processing City 259 of 750 - Healdsburg\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=healdsburg\n",
+      "Processing City 260 of 750 - Gualeguay\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=gualeguay\n",
+      "Processing City 261 of 750 - Wuwei\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=wuwei\n",
+      "Processing City 262 of 750 - Plettenberg Bay\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=plettenberg%20bay\n",
+      "Processing City 263 of 750 - Mutoko\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=mutoko\n",
+      "Processing City 264 of 750 - Dharchula\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=dharchula\n",
+      "Processing City 265 of 750 - Busayra\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=busayra\n"
+     ]
+    },
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "Processing City 266 of 750 - Coatesville\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=coatesville\n",
+      "Processing City 267 of 750 - Bang Lamung\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=bang%20lamung\n",
+      "Processing City 268 of 750 - Jaramana\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=jaramana\n",
+      "Processing City 269 of 750 - Guelengdeng\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=guelengdeng\n",
+      "Processing City 270 of 750 - Bakhmach\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=bakhmach\n",
+      "Processing City 271 of 750 - Lebanon\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=lebanon\n",
+      "Processing City 272 of 750 - Petropavlovka\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=petropavlovka\n",
+      "Processing City 273 of 750 - Ouidah\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=ouidah\n",
+      "Processing City 274 of 750 - Chirongui\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=chirongui\n",
+      "Processing City 275 of 750 - Birin\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=birin\n",
+      "Processing City 276 of 750 - Las Varas\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=las%20varas\n",
+      "Processing City 277 of 750 - Adrar\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=adrar\n",
+      "Processing City 278 of 750 - Capitan Bado\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=capitan%20bado\n",
+      "Processing City 279 of 750 - Mukhen\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=mukhen\n",
+      "Processing City 280 of 750 - Bundaberg\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=bundaberg\n",
+      "Processing City 281 of 750 - Osypenko\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=osypenko\n",
+      "Processing City 282 of 750 - Deputatskiy\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=deputatskiy\n",
+      "Processing City 283 of 750 - Tapejara\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=tapejara\n",
+      "Processing City 284 of 750 - Lingao\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=lingao\n",
+      "Processing City 285 of 750 - Tiebissou\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=tiebissou\n",
+      "Processing City 286 of 750 - Malacacheta\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=malacacheta\n",
+      "Processing City 287 of 750 - Hebi\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=hebi\n",
+      "Processing City 288 of 750 - Tarko-Sale\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=tarko-sale\n",
+      "Processing City 289 of 750 - Minsk\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=minsk\n",
+      "Processing City 290 of 750 - Kota Belud\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=kota%20belud\n",
+      "Processing City 291 of 750 - Beyneu\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=beyneu\n",
+      "Processing City 292 of 750 - Yulin\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=yulin\n",
+      "Processing City 293 of 750 - Wangou\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=wangou\n",
+      "Processing City 294 of 750 - Sudak\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=sudak\n",
+      "Processing City 295 of 750 - Boyuibe\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=boyuibe\n",
+      "Processing City 296 of 750 - Rajampet\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=rajampet\n",
+      "Processing City 297 of 750 - Abomey\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=abomey\n",
+      "Processing City 298 of 750 - Kashary\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=kashary\n",
+      "Processing City 299 of 750 - Nybro\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=nybro\n",
+      "Processing City 300 of 750 - Raipur\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=raipur\n",
+      "Processing City 301 of 750 - Mahenge\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=mahenge\n",
+      "Processing City 302 of 750 - Pirenopolis\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=pirenopolis\n",
+      "Processing City 303 of 750 - Debre Tabor\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=debre%20tabor\n",
+      "Processing City 304 of 750 - Bobrov\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=bobrov\n",
+      "Processing City 305 of 750 - Gopalpur\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=gopalpur\n",
+      "Processing City 306 of 750 - Kutahya\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=kutahya\n",
+      "Processing City 307 of 750 - Canutama\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=canutama\n",
+      "Processing City 308 of 750 - Talara\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=talara\n",
+      "Processing City 309 of 750 - Shizilu\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=shizilu\n",
+      "Processing City 310 of 750 - Jurm\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=jurm\n",
+      "Processing City 311 of 750 - Helong\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=helong\n",
+      "Processing City 312 of 750 - Kungalv\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=kungalv\n",
+      "Processing City 313 of 750 - Ipatovo\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=ipatovo\n",
+      "Processing City 314 of 750 - Angol\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=angol\n",
+      "Processing City 315 of 750 - Angren\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=angren\n",
+      "Processing City 316 of 750 - Kaspiysk\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=kaspiysk\n",
+      "Processing City 317 of 750 - Iisalmi\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=iisalmi\n",
+      "Processing City 318 of 750 - Cumana\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=cumana\n",
+      "Processing City 319 of 750 - Azrow\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=azrow\n",
+      "Processing City 320 of 750 - Maneadero\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=maneadero\n",
+      "Processing City 321 of 750 - Miranorte\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=miranorte\n",
+      "Processing City 322 of 750 - Novouzensk\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=novouzensk\n",
+      "Processing City 323 of 750 - Pondicherry\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=pondicherry\n",
+      "Processing City 324 of 750 - Cotui\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=cotui\n",
+      "Processing City 325 of 750 - Benicarlo\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=benicarlo\n",
+      "Processing City 326 of 750 - Jieshou\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=jieshou\n",
+      "Processing City 327 of 750 - Williston\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=williston\n",
+      "Processing City 328 of 750 - Seligenstadt\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=seligenstadt\n",
+      "Processing City 329 of 750 - Izhmorskiy\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=izhmorskiy\n",
+      "Processing City 330 of 750 - Holme\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=holme\n",
+      "Processing City 331 of 750 - Liwale\n"
+     ]
+    },
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=liwale\n",
+      "Processing City 332 of 750 - Boshnyakovo\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=boshnyakovo\n",
+      "Processing City 333 of 750 - Snihurivka\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=snihurivka\n",
+      "Processing City 334 of 750 - Ambodifototra\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=ambodifototra\n",
+      "Processing City 335 of 750 - Toora-Khem\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=toora-khem\n",
+      "Processing City 336 of 750 - Nalgonda\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=nalgonda\n",
+      "Processing City 337 of 750 - Touros\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=touros\n",
+      "Processing City 338 of 750 - La Asuncion\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=la%20asuncion\n",
+      "Processing City 339 of 750 - Talavera De La Reina\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=talavera%20de%20la%20reina\n",
+      "Processing City 340 of 750 - Tsaratanana\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=tsaratanana\n",
+      "Processing City 341 of 750 - Gympie\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=gympie\n",
+      "Processing City 342 of 750 - Mehndawal\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=mehndawal\n",
+      "Processing City 343 of 750 - Leshukonskoye\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=leshukonskoye\n",
+      "Processing City 344 of 750 - Amga\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=amga\n",
+      "Processing City 345 of 750 - Addi Ugri\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=addi%20ugri\n",
+      "Processing City 346 of 750 - Zaraza\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=zaraza\n",
+      "Processing City 347 of 750 - Diu\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=diu\n",
+      "Processing City 348 of 750 - Bunbury\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=bunbury\n",
+      "Processing City 349 of 750 - Chepo\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=chepo\n",
+      "Processing City 350 of 750 - Petrozavodsk\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=petrozavodsk\n",
+      "Processing City 351 of 750 - Ibiapina\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=ibiapina\n",
+      "Processing City 352 of 750 - Numan\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=numan\n",
+      "Processing City 353 of 750 - Lesnoy\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=lesnoy\n",
+      "Processing City 354 of 750 - Lang Suan\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=lang%20suan\n",
+      "Processing City 355 of 750 - Kankan\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=kankan\n",
+      "Processing City 356 of 750 - Soe\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=soe\n",
+      "Processing City 357 of 750 - Viking\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=viking\n",
+      "Processing City 358 of 750 - Orje\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=orje\n",
+      "Processing City 359 of 750 - Barao De Melgaco\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=barao%20de%20melgaco\n",
+      "Processing City 360 of 750 - Ibate\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=ibate\n",
+      "Processing City 361 of 750 - Gistrup\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=gistrup\n",
+      "Processing City 362 of 750 - Cehegin\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=cehegin\n",
+      "Processing City 363 of 750 - Lewisville\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=lewisville\n",
+      "Processing City 364 of 750 - Karamken\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=karamken\n",
+      "Processing City 365 of 750 - Mineral Wells\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=mineral%20wells\n",
+      "Processing City 366 of 750 - Kuvshinovo\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=kuvshinovo\n",
+      "Processing City 367 of 750 - Zasechnoye\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=zasechnoye\n",
+      "Processing City 368 of 750 - The Pas\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=the%20pas\n",
+      "Processing City 369 of 750 - Aswan\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=aswan\n",
+      "Processing City 370 of 750 - Tarakan\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=tarakan\n",
+      "Processing City 371 of 750 - La Baneza\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=la%20baneza\n",
+      "Processing City 372 of 750 - Tha Mai\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=tha%20mai\n",
+      "Processing City 373 of 750 - Sao Raimundo Nonato\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=sao%20raimundo%20nonato\n",
+      "Processing City 374 of 750 - Rockport\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=rockport\n",
+      "Processing City 375 of 750 - Tamulte\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=tamulte\n",
+      "Processing City 376 of 750 - Bela Vista\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=bela%20vista\n",
+      "Processing City 377 of 750 - South Sioux City\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=south%20sioux%20city\n",
+      "Processing City 378 of 750 - Brcko\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=brcko\n",
+      "Processing City 379 of 750 - Norsup\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=norsup\n",
+      "Processing City 380 of 750 - Can Tho\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=can%20tho\n",
+      "Processing City 381 of 750 - Kilis\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=kilis\n",
+      "Processing City 382 of 750 - Boguchany\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=boguchany\n",
+      "Processing City 383 of 750 - Najran\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=najran\n",
+      "Processing City 384 of 750 - Aykhal\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=aykhal\n",
+      "Processing City 385 of 750 - Zalaszentgrot\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=zalaszentgrot\n",
+      "Processing City 386 of 750 - Srandakan\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=srandakan\n",
+      "Processing City 387 of 750 - Camacha\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=camacha\n",
+      "Processing City 388 of 750 - Diosjeno\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=diosjeno\n",
+      "Processing City 389 of 750 - Riyaq\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=riyaq\n",
+      "Processing City 390 of 750 - Scottsboro\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=scottsboro\n",
+      "Processing City 391 of 750 - Gayeri\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=gayeri\n",
+      "Processing City 392 of 750 - Montego Bay\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=montego%20bay\n",
+      "Processing City 393 of 750 - Athy\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=athy\n",
+      "Processing City 394 of 750 - Arkhipo-Osipovka\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=arkhipo-osipovka\n",
+      "Processing City 395 of 750 - Dunayivtsi\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=dunayivtsi\n",
+      "Processing City 396 of 750 - Menzelinsk\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=menzelinsk\n"
+     ]
+    },
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "Processing City 397 of 750 - Lenine\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=lenine\n",
+      "Processing City 398 of 750 - Higuey\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=higuey\n",
+      "Processing City 399 of 750 - Inderborskiy\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=inderborskiy\n",
+      "Processing City 400 of 750 - Effingham\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=effingham\n",
+      "Processing City 401 of 750 - Namanyere\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=namanyere\n",
+      "Processing City 402 of 750 - Sovetskaya\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=sovetskaya\n",
+      "Processing City 403 of 750 - Mormugao\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=mormugao\n",
+      "Processing City 404 of 750 - Amozoc\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=amozoc\n",
+      "Processing City 405 of 750 - Nizhniy Bestyakh\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=nizhniy%20bestyakh\n",
+      "Processing City 406 of 750 - Otane\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=otane\n",
+      "Processing City 407 of 750 - Kibaya\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=kibaya\n",
+      "Processing City 408 of 750 - Excelsior Springs\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=excelsior%20springs\n",
+      "Processing City 409 of 750 - Terenos\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=terenos\n",
+      "Processing City 410 of 750 - Zverinogolovskoye\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=zverinogolovskoye\n",
+      "Processing City 411 of 750 - Kilembe\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=kilembe\n",
+      "Processing City 412 of 750 - Tevaitoa\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=tevaitoa\n",
+      "Processing City 413 of 750 - Pleshanovo\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=pleshanovo\n",
+      "Processing City 414 of 750 - Owensboro\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=owensboro\n",
+      "Processing City 415 of 750 - Itoman\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=itoman\n",
+      "Processing City 416 of 750 - Gerash\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=gerash\n",
+      "Processing City 417 of 750 - Amarante Do Maranhao\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=amarante%20do%20maranhao\n",
+      "Processing City 418 of 750 - Lukulu\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=lukulu\n",
+      "Processing City 419 of 750 - Walla Walla\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=walla%20walla\n",
+      "Processing City 420 of 750 - Hakkari\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=hakkari\n",
+      "Processing City 421 of 750 - Kariya\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=kariya\n",
+      "Processing City 422 of 750 - Votkinsk\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=votkinsk\n",
+      "Processing City 423 of 750 - Coldwater\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=coldwater\n",
+      "Processing City 424 of 750 - Loutros\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=loutros\n",
+      "Processing City 425 of 750 - Pyaozerskiy\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=pyaozerskiy\n",
+      "Processing City 426 of 750 - Mporokoso\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=mporokoso\n",
+      "Processing City 427 of 750 - Chicama\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=chicama\n",
+      "Processing City 428 of 750 - Novochernorechenskiy\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=novochernorechenskiy\n",
+      "Processing City 429 of 750 - Devrek\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=devrek\n",
+      "Processing City 430 of 750 - Upig\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=upig\n",
+      "Processing City 431 of 750 - Batagay-Alyta\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=batagay-alyta\n",
+      "Processing City 432 of 750 - Pousat\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=pousat\n",
+      "Processing City 433 of 750 - Chagda\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=chagda\n",
+      "Processing City 434 of 750 - Cheremkhovo\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=cheremkhovo\n",
+      "Processing City 435 of 750 - Logumkloster\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=logumkloster\n",
+      "Processing City 436 of 750 - Rangoon\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=rangoon\n",
+      "Processing City 437 of 750 - Gondanglegi\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=gondanglegi\n",
+      "Processing City 438 of 750 - Winchester\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=winchester\n",
+      "Processing City 439 of 750 - Xinzhi\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=xinzhi\n",
+      "Processing City 440 of 750 - Bom Jesus\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=bom%20jesus\n",
+      "Processing City 441 of 750 - Cam Pha\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=cam%20pha\n",
+      "Processing City 442 of 750 - Tobane\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=tobane\n",
+      "Processing City 443 of 750 - Bayir\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=bayir\n",
+      "Processing City 444 of 750 - Tacuarembo\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=tacuarembo\n",
+      "Processing City 445 of 750 - Hendaye\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=hendaye\n",
+      "Processing City 446 of 750 - Casablanca\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=casablanca\n",
+      "Processing City 447 of 750 - Nizhniy Tsasuchey\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=nizhniy%20tsasuchey\n",
+      "Processing City 448 of 750 - Pozo Colorado\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=pozo%20colorado\n",
+      "Processing City 449 of 750 - Suleja\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=suleja\n",
+      "Processing City 450 of 750 - Gunnedah\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=gunnedah\n",
+      "Processing City 451 of 750 - Znamenskoye\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=znamenskoye\n",
+      "Processing City 452 of 750 - Longview\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=longview\n",
+      "Processing City 453 of 750 - Caucasia\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=caucasia\n",
+      "Processing City 454 of 750 - Burica\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=burica\n",
+      "Processing City 455 of 750 - Gescher\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=gescher\n",
+      "Processing City 456 of 750 - Campo Verde\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=campo%20verde\n",
+      "Processing City 457 of 750 - Hutchinson\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=hutchinson\n",
+      "Processing City 458 of 750 - Yhu\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=yhu\n",
+      "Processing City 459 of 750 - Nalut\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=nalut\n",
+      "Processing City 460 of 750 - Alyangula\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=alyangula\n",
+      "Processing City 461 of 750 - Jaru\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=jaru\n"
+     ]
+    },
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "Processing City 462 of 750 - Pilar\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=pilar\n",
+      "Processing City 463 of 750 - Tengzhou\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=tengzhou\n",
+      "Processing City 464 of 750 - San Mateo Del Mar\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=san%20mateo%20del%20mar\n",
+      "Processing City 465 of 750 - Huangpi\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=huangpi\n",
+      "Processing City 466 of 750 - Belaya Glina\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=belaya%20glina\n",
+      "Processing City 467 of 750 - Plaridel\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=plaridel\n",
+      "Processing City 468 of 750 - Caracuaro\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=caracuaro\n",
+      "Processing City 469 of 750 - Bukama\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=bukama\n",
+      "Processing City 470 of 750 - Glyadyanskoye\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=glyadyanskoye\n",
+      "Processing City 471 of 750 - Alto Araguaia\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=alto%20araguaia\n",
+      "Processing City 472 of 750 - Subtanjalla\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=subtanjalla\n",
+      "Processing City 473 of 750 - Brumunddal\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=brumunddal\n",
+      "Processing City 474 of 750 - Superior\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=superior\n",
+      "Processing City 475 of 750 - Corinto\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=corinto\n",
+      "Processing City 476 of 750 - Omsukchan\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=omsukchan\n",
+      "Processing City 477 of 750 - Krabi\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=krabi\n",
+      "Processing City 478 of 750 - Opobo\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=opobo\n",
+      "Processing City 479 of 750 - Katsiveli\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=katsiveli\n",
+      "Processing City 480 of 750 - Ayan\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=ayan\n",
+      "Processing City 481 of 750 - Torrox\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=torrox\n",
+      "Processing City 482 of 750 - Copacabana\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=copacabana\n",
+      "Processing City 483 of 750 - Grand Forks\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=grand%20forks\n",
+      "Processing City 484 of 750 - Tranas\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=tranas\n",
+      "Processing City 485 of 750 - Wainwright\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=wainwright\n",
+      "Processing City 486 of 750 - Amod\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=amod\n",
+      "Processing City 487 of 750 - Qazvin\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=qazvin\n",
+      "Processing City 488 of 750 - Rahon\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=rahon\n",
+      "Processing City 489 of 750 - Yauya\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=yauya\n",
+      "Processing City 490 of 750 - Rorvik\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=rorvik\n",
+      "Processing City 491 of 750 - La Ciotat\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=la%20ciotat\n",
+      "Processing City 492 of 750 - Abu Zabad\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=abu%20zabad\n",
+      "Processing City 493 of 750 - Mandan\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=mandan\n",
+      "Processing City 494 of 750 - Masvingo\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=masvingo\n",
+      "Processing City 495 of 750 - Kilkis\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=kilkis\n",
+      "Processing City 496 of 750 - Valkeala\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=valkeala\n",
+      "Processing City 497 of 750 - Severo-Yeniseyskiy\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=severo-yeniseyskiy\n",
+      "Processing City 498 of 750 - Sandy Bay\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=sandy%20bay\n",
+      "Processing City 499 of 750 - Pishin\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=pishin\n",
+      "Processing City 500 of 750 - Fengrun\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=fengrun\n",
+      "Processing City 501 of 750 - Hattiesburg\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=hattiesburg\n",
+      "Processing City 502 of 750 - Manicore\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=manicore\n",
+      "Processing City 503 of 750 - Imabari\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=imabari\n",
+      "Processing City 504 of 750 - Gamboula\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=gamboula\n",
+      "Processing City 505 of 750 - Dzhebariki-Khaya\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=dzhebariki-khaya\n",
+      "Processing City 506 of 750 - Onguday\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=onguday\n",
+      "Processing City 507 of 750 - Megion\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=megion\n",
+      "Processing City 508 of 750 - Kupino\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=kupino\n",
+      "Processing City 509 of 750 - Boone\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=boone\n",
+      "Processing City 510 of 750 - Bethanien\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=bethanien\n",
+      "Processing City 511 of 750 - Marawi\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=marawi\n",
+      "Processing City 512 of 750 - Laem Sing\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=laem%20sing\n",
+      "Processing City 513 of 750 - Amalner\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=amalner\n",
+      "Processing City 514 of 750 - Ayna\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=ayna\n",
+      "Processing City 515 of 750 - Nelson\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=nelson\n",
+      "Processing City 516 of 750 - George Town\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=george%20town\n",
+      "Processing City 517 of 750 - Kokstad\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=kokstad\n",
+      "Processing City 518 of 750 - Chirkey\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=chirkey\n",
+      "Processing City 519 of 750 - Chik\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=chik\n",
+      "Processing City 520 of 750 - Ferkessedougou\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=ferkessedougou\n",
+      "Processing City 521 of 750 - Vernon\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=vernon\n",
+      "Processing City 522 of 750 - Minna\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=minna\n",
+      "Processing City 523 of 750 - Wilmington Island\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=wilmington%20island\n",
+      "Processing City 524 of 750 - Imeni Poliny Osipenko\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=imeni%20poliny%20osipenko\n",
+      "Processing City 525 of 750 - Rapid Valley\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=rapid%20valley\n",
+      "Processing City 526 of 750 - Whitehaven\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=whitehaven\n"
+     ]
+    },
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "Processing City 527 of 750 - Wanganui\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=wanganui\n",
+      "Processing City 528 of 750 - Ketchikan\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=ketchikan\n",
+      "Processing City 529 of 750 - Gwadar\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=gwadar\n",
+      "Processing City 530 of 750 - San Patricio\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=san%20patricio\n",
+      "Processing City 531 of 750 - Paramirim\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=paramirim\n",
+      "Processing City 532 of 750 - Asenovgrad\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=asenovgrad\n",
+      "Processing City 533 of 750 - Biltine\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=biltine\n",
+      "Processing City 534 of 750 - Tumen\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=tumen\n",
+      "Processing City 535 of 750 - Rodrigues Alves\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=rodrigues%20alves\n",
+      "Processing City 536 of 750 - Hwange\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=hwange\n",
+      "Processing City 537 of 750 - Tarancon\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=tarancon\n",
+      "Processing City 538 of 750 - Santo Antonio Do Leverger\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=santo%20antonio%20do%20leverger\n",
+      "Processing City 539 of 750 - San Ignacio\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=san%20ignacio\n",
+      "Processing City 540 of 750 - Presidente Venceslau\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=presidente%20venceslau\n",
+      "Processing City 541 of 750 - Gobo\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=gobo\n",
+      "Processing City 542 of 750 - Madison\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=madison\n",
+      "Processing City 543 of 750 - Lyubech\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=lyubech\n",
+      "Processing City 544 of 750 - Woodward\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=woodward\n",
+      "Processing City 545 of 750 - Garowe\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=garowe\n",
+      "Processing City 546 of 750 - Butte\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=butte\n",
+      "Processing City 547 of 750 - Hanzhong\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=hanzhong\n",
+      "Processing City 548 of 750 - Sooke\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=sooke\n",
+      "Processing City 549 of 750 - Yerofey Pavlovich\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=yerofey%20pavlovich\n",
+      "Processing City 550 of 750 - Shirokiy\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=shirokiy\n",
+      "Processing City 551 of 750 - Tamsweg\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=tamsweg\n",
+      "Processing City 552 of 750 - La Seyne-Sur-Mer\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=la%20seyne-sur-mer\n",
+      "Processing City 553 of 750 - Panama City\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=panama%20city\n",
+      "Processing City 554 of 750 - Turgoyak\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=turgoyak\n",
+      "Processing City 555 of 750 - Novobiryusinskiy\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=novobiryusinskiy\n",
+      "Processing City 556 of 750 - Dodola\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=dodola\n",
+      "Processing City 557 of 750 - Mitzic\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=mitzic\n",
+      "Processing City 558 of 750 - Idil\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=idil\n",
+      "Processing City 559 of 750 - Bialogard\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=bialogard\n",
+      "Processing City 560 of 750 - Elk Point\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=elk%20point\n",
+      "Processing City 561 of 750 - Erzurum\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=erzurum\n",
+      "Processing City 562 of 750 - Mortka\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=mortka\n",
+      "Processing City 563 of 750 - Nguruka\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=nguruka\n",
+      "Processing City 564 of 750 - Sanghar\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=sanghar\n",
+      "Processing City 565 of 750 - Jeremie\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=jeremie\n",
+      "Processing City 566 of 750 - Susehri\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=susehri\n",
+      "Processing City 567 of 750 - Sakakah\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=sakakah\n",
+      "Processing City 568 of 750 - Albacete\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=albacete\n",
+      "Processing City 569 of 750 - Tabarqah\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=tabarqah\n",
+      "Processing City 570 of 750 - Grandview\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=grandview\n",
+      "Processing City 571 of 750 - Don Sak\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=don%20sak\n",
+      "Processing City 572 of 750 - Upernavik\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=upernavik\n",
+      "Processing City 573 of 750 - Kalmar\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=kalmar\n",
+      "Processing City 574 of 750 - Curuca\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=curuca\n",
+      "Processing City 575 of 750 - Jumla\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=jumla\n",
+      "Processing City 576 of 750 - Marfino\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=marfino\n",
+      "Processing City 577 of 750 - Camacupa\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=camacupa\n",
+      "Processing City 578 of 750 - Mirnyy\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=mirnyy\n",
+      "Processing City 579 of 750 - Panguna\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=panguna\n",
+      "Processing City 580 of 750 - El Alto\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=el%20alto\n",
+      "Processing City 581 of 750 - Kentau\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=kentau\n",
+      "Processing City 582 of 750 - Rancho Palos Verdes\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=rancho%20palos%20verdes\n",
+      "Processing City 583 of 750 - Tekeli\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=tekeli\n",
+      "Processing City 584 of 750 - Mpongwe\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=mpongwe\n",
+      "Processing City 585 of 750 - Gorin\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=gorin\n",
+      "Processing City 586 of 750 - Labytnangi\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=labytnangi\n",
+      "Processing City 587 of 750 - Camara De Lobos\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=camara%20de%20lobos\n",
+      "Processing City 588 of 750 - Kigoma\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=kigoma\n",
+      "Processing City 589 of 750 - Eufaula\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=eufaula\n",
+      "Processing City 590 of 750 - Hollins\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=hollins\n",
+      "Processing City 591 of 750 - Abai\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=abai\n"
+     ]
+    },
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "Processing City 592 of 750 - Netrakona\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=netrakona\n",
+      "Processing City 593 of 750 - Calafat\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=calafat\n",
+      "Processing City 594 of 750 - Pankrushikha\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=pankrushikha\n",
+      "Processing City 595 of 750 - Susner\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=susner\n",
+      "Processing City 596 of 750 - De-Kastri\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=de-kastri\n",
+      "Processing City 597 of 750 - Schruns\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=schruns\n",
+      "Processing City 598 of 750 - Anar Darreh\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=anar%20darreh\n",
+      "Processing City 599 of 750 - Dong Hoi\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=dong%20hoi\n",
+      "Processing City 600 of 750 - Soria\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=soria\n",
+      "Processing City 601 of 750 - Viganello\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=viganello\n",
+      "Processing City 602 of 750 - Zilupe\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=zilupe\n",
+      "Processing City 603 of 750 - Petauke\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=petauke\n",
+      "Processing City 604 of 750 - Autun\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=autun\n",
+      "Processing City 605 of 750 - Sawakin\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=sawakin\n",
+      "Processing City 606 of 750 - Mehamn\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=mehamn\n",
+      "Processing City 607 of 750 - Paracuru\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=paracuru\n",
+      "Processing City 608 of 750 - Bamora\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=bamora\n",
+      "Processing City 609 of 750 - Picota\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=picota\n",
+      "Processing City 610 of 750 - Szalkszentmarton\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=szalkszentmarton\n",
+      "Processing City 611 of 750 - Tashara\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=tashara\n",
+      "Processing City 612 of 750 - Orocue\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=orocue\n",
+      "Processing City 613 of 750 - Starosubkhangulovo\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=starosubkhangulovo\n",
+      "Processing City 614 of 750 - Arrifes\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=arrifes\n",
+      "Processing City 615 of 750 - Challapata\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=challapata\n",
+      "Processing City 616 of 750 - Richmond\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=richmond\n",
+      "Processing City 617 of 750 - Xian\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=xian\n",
+      "Processing City 618 of 750 - Pasighat\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=pasighat\n",
+      "Processing City 619 of 750 - Rawah\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=rawah\n",
+      "Processing City 620 of 750 - Samfya\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=samfya\n",
+      "Processing City 621 of 750 - Hargeysa\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=hargeysa\n",
+      "Processing City 622 of 750 - Barhi\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=barhi\n",
+      "Processing City 623 of 750 - Bajos De Haina\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=bajos%20de%20haina\n",
+      "Processing City 624 of 750 - Yerky\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=yerky\n",
+      "Processing City 625 of 750 - San Fernando\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=san%20fernando\n",
+      "Processing City 626 of 750 - Trincomalee\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=trincomalee\n",
+      "Processing City 627 of 750 - Handwara\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=handwara\n",
+      "Processing City 628 of 750 - Sriperumbudur\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=sriperumbudur\n",
+      "Processing City 629 of 750 - Kalanguy\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=kalanguy\n",
+      "Processing City 630 of 750 - Canon City\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=canon%20city\n",
+      "Processing City 631 of 750 - Alenquer\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=alenquer\n",
+      "Processing City 632 of 750 - Belmonte\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=belmonte\n",
+      "Processing City 633 of 750 - Makurdi\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=makurdi\n",
+      "Processing City 634 of 750 - Labuhan\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=labuhan\n",
+      "Processing City 635 of 750 - Loikaw\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=loikaw\n",
+      "Processing City 636 of 750 - Tena\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=tena\n",
+      "Processing City 637 of 750 - Balimo\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=balimo\n",
+      "Processing City 638 of 750 - Changde\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=changde\n",
+      "Processing City 639 of 750 - Tiznit\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=tiznit\n",
+      "Processing City 640 of 750 - Damietta\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=damietta\n",
+      "Processing City 641 of 750 - Ambunti\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=ambunti\n",
+      "Processing City 642 of 750 - Sataua\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=sataua\n",
+      "Processing City 643 of 750 - Sayville\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=sayville\n",
+      "Processing City 644 of 750 - Saint-Augustin\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=saint-augustin\n",
+      "Processing City 645 of 750 - Lakhisarai\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=lakhisarai\n",
+      "Processing City 646 of 750 - Putina\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=putina\n",
+      "Processing City 647 of 750 - Rupert\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=rupert\n",
+      "Processing City 648 of 750 - Stillwater\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=stillwater\n",
+      "Processing City 649 of 750 - Gueret\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=gueret\n",
+      "Processing City 650 of 750 - Lakes Entrance\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=lakes%20entrance\n",
+      "Processing City 651 of 750 - Oistins\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=oistins\n",
+      "Processing City 652 of 750 - Kisanga\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=kisanga\n",
+      "Processing City 653 of 750 - La Plata\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=la%20plata\n",
+      "Processing City 654 of 750 - Denizli\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=denizli\n",
+      "Processing City 655 of 750 - Castle Douglas\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=castle%20douglas\n",
+      "Processing City 656 of 750 - Quixada\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=quixada\n",
+      "Processing City 657 of 750 - Khuchni\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=khuchni\n"
+     ]
+    },
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "Processing City 658 of 750 - Pyapon\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=pyapon\n",
+      "Processing City 659 of 750 - Camaragibe\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=camaragibe\n",
+      "Processing City 660 of 750 - Caucaia\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=caucaia\n",
+      "Processing City 661 of 750 - Santa Helena De Goias\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=santa%20helena%20de%20goias\n",
+      "Processing City 662 of 750 - Daltenganj\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=daltenganj\n",
+      "Processing City 663 of 750 - Mingguang\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=mingguang\n",
+      "Processing City 664 of 750 - Praia\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=praia\n",
+      "Processing City 665 of 750 - Sukhoy Log\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=sukhoy%20log\n",
+      "Processing City 666 of 750 - Ocos\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=ocos\n",
+      "Processing City 667 of 750 - Asuncion\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=asuncion\n",
+      "Processing City 668 of 750 - Mmabatho\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=mmabatho\n",
+      "Processing City 669 of 750 - Kaiu\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=kaiu\n",
+      "Processing City 670 of 750 - Nueva Gerona\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=nueva%20gerona\n",
+      "Processing City 671 of 750 - Pont-A-Mousson\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=pont-a-mousson\n",
+      "Processing City 672 of 750 - Ouro Fino\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=ouro%20fino\n",
+      "Processing City 673 of 750 - Xinyang\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=xinyang\n",
+      "Processing City 674 of 750 - Panshi\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=panshi\n",
+      "Processing City 675 of 750 - Melito Di Porto Salvo\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=melito%20di%20porto%20salvo\n",
+      "Processing City 676 of 750 - Dianopolis\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=dianopolis\n",
+      "Processing City 677 of 750 - Nikel\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=nikel\n",
+      "Processing City 678 of 750 - Abay\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=abay\n",
+      "Processing City 679 of 750 - Twin Falls\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=twin%20falls\n",
+      "Processing City 680 of 750 - Benjamin Constant\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=benjamin%20constant\n",
+      "Processing City 681 of 750 - Uige\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=uige\n",
+      "Processing City 682 of 750 - Valdez\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=valdez\n",
+      "Processing City 683 of 750 - Kotido\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=kotido\n",
+      "Processing City 684 of 750 - Shush\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=shush\n",
+      "Processing City 685 of 750 - Easton\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=easton\n",
+      "Processing City 686 of 750 - Gusau\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=gusau\n",
+      "Processing City 687 of 750 - Severnoye\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=severnoye\n",
+      "Processing City 688 of 750 - Carahue\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=carahue\n",
+      "Processing City 689 of 750 - Armacao Dos Buzios\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=armacao%20dos%20buzios\n",
+      "Processing City 690 of 750 - Ladwa\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=ladwa\n",
+      "Processing City 691 of 750 - Meaux\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=meaux\n",
+      "Processing City 692 of 750 - Jaleswar\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=jaleswar\n",
+      "Processing City 693 of 750 - Concord\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=concord\n",
+      "Processing City 694 of 750 - Skibbereen\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=skibbereen\n",
+      "Processing City 695 of 750 - Aksum\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=aksum\n",
+      "Processing City 696 of 750 - Florida\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=florida\n",
+      "Processing City 697 of 750 - Mambolo\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=mambolo\n",
+      "Processing City 698 of 750 - Miracema Do Tocantins\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=miracema%20do%20tocantins\n",
+      "Processing City 699 of 750 - Hojai\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=hojai\n",
+      "Processing City 700 of 750 - Nurota\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=nurota\n",
+      "Processing City 701 of 750 - Conway\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=conway\n",
+      "Processing City 702 of 750 - Francisco Beltrao\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=francisco%20beltrao\n",
+      "Processing City 703 of 750 - El Cobre\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=el%20cobre\n",
+      "Processing City 704 of 750 - La Ronge\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=la%20ronge\n",
+      "Processing City 705 of 750 - Kamina\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=kamina\n",
+      "Processing City 706 of 750 - Malkapur\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=malkapur\n",
+      "Processing City 707 of 750 - Valdobbiadene\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=valdobbiadene\n",
+      "Processing City 708 of 750 - Mar Del Plata\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=mar%20del%20plata\n",
+      "Processing City 709 of 750 - Vao\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=vao\n",
+      "Processing City 710 of 750 - Mandalay\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=mandalay\n",
+      "Processing City 711 of 750 - North Saint Paul\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=north%20saint%20paul\n",
+      "Processing City 712 of 750 - Caohai\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=caohai\n",
+      "Processing City 713 of 750 - Statesville\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=statesville\n",
+      "Processing City 714 of 750 - Ljungby\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=ljungby\n",
+      "Processing City 715 of 750 - Burriana\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=burriana\n",
+      "Processing City 716 of 750 - Ibicui\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=ibicui\n",
+      "Processing City 717 of 750 - Chalmette\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=chalmette\n",
+      "Processing City 718 of 750 - Obeliai\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=obeliai\n",
+      "Processing City 719 of 750 - Dujuma\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=dujuma\n",
+      "Processing City 720 of 750 - Lorengau\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=lorengau\n",
+      "Processing City 721 of 750 - Taksimo\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=taksimo\n",
+      "Processing City 722 of 750 - Karwar\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=karwar\n"
+     ]
+    },
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "Processing City 723 of 750 - Naftah\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=naftah\n",
+      "Processing City 724 of 750 - Xinyu\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=xinyu\n",
+      "Processing City 725 of 750 - Saint Pete Beach\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=saint%20pete%20beach\n",
+      "Processing City 726 of 750 - Madarounfa\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=madarounfa\n",
+      "Processing City 727 of 750 - Pascagoula\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=pascagoula\n",
+      "Processing City 728 of 750 - Canto Do Buriti\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=canto%20do%20buriti\n",
+      "Processing City 729 of 750 - Francistown\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=francistown\n",
+      "Processing City 730 of 750 - Skegness\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=skegness\n",
+      "Processing City 731 of 750 - Gubkinskiy\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=gubkinskiy\n",
+      "Processing City 732 of 750 - Teno\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=teno\n",
+      "Processing City 733 of 750 - Olonets\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=olonets\n",
+      "Processing City 734 of 750 - Suarez\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=suarez\n",
+      "Processing City 735 of 750 - Narasannapeta\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=narasannapeta\n",
+      "Processing City 736 of 750 - Khuldabad\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=khuldabad\n",
+      "Processing City 737 of 750 - Bogande\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=bogande\n",
+      "Processing City 738 of 750 - General Pico\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=general%20pico\n",
+      "Processing City 739 of 750 - Road Town\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=road%20town\n",
+      "Processing City 740 of 750 - Guhagar\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=guhagar\n",
+      "Processing City 741 of 750 - Fougamou\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=fougamou\n",
+      "Processing City 742 of 750 - Ourossogui\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=ourossogui\n",
+      "Processing City 743 of 750 - Marica\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=marica\n",
+      "Processing City 744 of 750 - Yanam\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=yanam\n",
+      "Processing City 745 of 750 - Da Lat\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=da%20lat\n",
+      "Processing City 746 of 750 - Szentlorinc\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=szentlorinc\n",
+      "Processing City 747 of 750 - Lidkoping\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=lidkoping\n",
+      "Processing City 748 of 750 - Bolshaya Chernigovka\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=bolshaya%20chernigovka\n",
+      "Processing City 749 of 750 - Tiarei\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=tiarei\n",
+      "Processing City 750 of 750 - Sun Valley\n",
+      "http://api.openweathermap.org/data/2.5/weather?units=Imperial&APPID=api_key&q=sun%20valley\n",
+      "-------------------------------\n",
+      "Data Retrieval Complete\n",
+      "-------------------------------\n"
+     ]
+    }
+   ],
+   "source": [
+    "units = \"Imperial\"\n",
+    "print(\"Beginning Data Retrieval\")\n",
+    "print(\"-------------------------------\")\n",
+    "for index,row in city_samples.iterrows():\n",
+    "    city_name = row[\"City\"]\n",
+    "    city_url_name = city_name.replace(\" \", \"%20\")\n",
+    "    target_url = \"http://api.openweathermap.org/data/2.5/weather?units=%s&APPID=%s&q=%s\" % (units, api_key, city_url_name)\n",
+    "    city_weather = requests.get(target_url).json()\n",
+    "    city_samples.set_value(index,\"Lat\",city_weather.get(\"coord\",{}).get(\"lat\"))\n",
+    "    city_samples.set_value(index,\"Lng\",city_weather.get(\"coord\",{}).get(\"lon\"))\n",
+    "    city_samples.set_value(index,\"Country\",city_weather.get(\"sys\",{}).get(\"country\"))\n",
+    "    city_samples.set_value(index,\"Date\",city_weather.get(\"dt\",{}))\n",
+    "    city_samples.set_value(index,\"Max Temp(°F)\",city_weather.get(\"main\",{}).get(\"temp_max\"))\n",
+    "    city_samples.set_value(index,\"Humidity(%)\",city_weather.get(\"main\",{}).get(\"humidity\"))\n",
+    "    city_samples.set_value(index,\"Cloudiness(%)\",city_weather.get(\"clouds\",{}).get(\"all\"))\n",
+    "    city_samples.set_value(index,\"Wind Speed(mph)\",city_weather.get(\"wind\",{}).get(\"speed\"))\n",
+    "    print(\"Processing City \" + str(index) + \" of 750 - \" + str.title(city_name))\n",
+    "    print_url = \"http://api.openweathermap.org/data/2.5/weather?units=%s&APPID=%s&q=%s\" % (units, \"api_key\", city_url_name)\n",
+    "    print(print_url)\n",
+    "print(\"-------------------------------\")\n",
+    "print(\"Data Retrieval Complete\")\n",
+    "print(\"-------------------------------\")\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 5,
+   "metadata": {
+    "scrolled": false
+   },
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "City               701\n",
+       "Lat                701\n",
+       "Lng                701\n",
+       "Country            701\n",
+       "Date               701\n",
+       "Max Temp(°F)       701\n",
+       "Humidity(%)        701\n",
+       "Cloudiness(%)      701\n",
+       "Wind Speed(mph)    701\n",
+       "Max Temp(°F)       701\n",
+       "dtype: int64"
+      ]
+     },
+     "execution_count": 5,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "#Clean up & save as CSV file\n",
+    "city_samples = city_samples.dropna()\n",
+    "city_samples.to_csv(\"weatherpy_data_results.csv\")\n",
+    "city_samples.count(axis = 0)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 6,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/html": [
+       "<div>\n",
+       "<style scoped>\n",
+       "    .dataframe tbody tr th:only-of-type {\n",
+       "        vertical-align: middle;\n",
+       "    }\n",
+       "\n",
+       "    .dataframe tbody tr th {\n",
+       "        vertical-align: top;\n",
+       "    }\n",
+       "\n",
+       "    .dataframe thead th {\n",
+       "        text-align: right;\n",
+       "    }\n",
+       "</style>\n",
+       "<table border=\"1\" class=\"dataframe\">\n",
+       "  <thead>\n",
+       "    <tr style=\"text-align: right;\">\n",
+       "      <th></th>\n",
+       "      <th>City</th>\n",
+       "      <th>Lat</th>\n",
+       "      <th>Lng</th>\n",
+       "      <th>Country</th>\n",
+       "      <th>Date</th>\n",
+       "      <th>Max Temp(°F)</th>\n",
+       "      <th>Humidity(%)</th>\n",
+       "      <th>Cloudiness(%)</th>\n",
+       "      <th>Wind Speed(mph)</th>\n",
+       "      <th>Max Temp(°F)</th>\n",
+       "    </tr>\n",
+       "  </thead>\n",
+       "  <tbody>\n",
+       "    <tr>\n",
+       "      <th>1</th>\n",
+       "      <td>smithers</td>\n",
+       "      <td>54.78</td>\n",
+       "      <td>-127.17</td>\n",
+       "      <td>CA</td>\n",
+       "      <td>1551654000</td>\n",
+       "      <td></td>\n",
+       "      <td>26</td>\n",
+       "      <td>5</td>\n",
+       "      <td>2.62</td>\n",
+       "      <td>19.40</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>2</th>\n",
+       "      <td>tirat karmel</td>\n",
+       "      <td>32.76</td>\n",
+       "      <td>34.97</td>\n",
+       "      <td>IL</td>\n",
+       "      <td>1551656758</td>\n",
+       "      <td></td>\n",
+       "      <td>90</td>\n",
+       "      <td>88</td>\n",
+       "      <td>1.99</td>\n",
+       "      <td>51.01</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>3</th>\n",
+       "      <td>igrim</td>\n",
+       "      <td>63.19</td>\n",
+       "      <td>64.42</td>\n",
+       "      <td>RU</td>\n",
+       "      <td>1551657025</td>\n",
+       "      <td></td>\n",
+       "      <td>71</td>\n",
+       "      <td>68</td>\n",
+       "      <td>9.44</td>\n",
+       "      <td>8.23</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>4</th>\n",
+       "      <td>santa rosa</td>\n",
+       "      <td>-36.62</td>\n",
+       "      <td>-64.29</td>\n",
+       "      <td>AR</td>\n",
+       "      <td>1551657027</td>\n",
+       "      <td></td>\n",
+       "      <td>90</td>\n",
+       "      <td>92</td>\n",
+       "      <td>7.87</td>\n",
+       "      <td>68.17</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>5</th>\n",
+       "      <td>cavalcante</td>\n",
+       "      <td>-13.79</td>\n",
+       "      <td>-47.46</td>\n",
+       "      <td>BR</td>\n",
+       "      <td>1551657028</td>\n",
+       "      <td></td>\n",
+       "      <td>94</td>\n",
+       "      <td>64</td>\n",
+       "      <td>2.62</td>\n",
+       "      <td>68.48</td>\n",
+       "    </tr>\n",
+       "  </tbody>\n",
+       "</table>\n",
+       "</div>"
+      ],
+      "text/plain": [
+       "           City    Lat     Lng Country        Date Max Temp(°F)  Humidity(%)  \\\n",
+       "1      smithers  54.78 -127.17      CA  1551654000                        26   \n",
+       "2  tirat karmel  32.76   34.97      IL  1551656758                        90   \n",
+       "3         igrim  63.19   64.42      RU  1551657025                        71   \n",
+       "4    santa rosa -36.62  -64.29      AR  1551657027                        90   \n",
+       "5    cavalcante -13.79  -47.46      BR  1551657028                        94   \n",
+       "\n",
+       "  Cloudiness(%) Wind Speed(mph)  Max Temp(°F)  \n",
+       "1             5            2.62         19.40  \n",
+       "2            88            1.99         51.01  \n",
+       "3            68            9.44          8.23  \n",
+       "4            92            7.87         68.17  \n",
+       "5            64            2.62         68.48  "
+      ]
+     },
+     "execution_count": 6,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "city_samples.head()"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "# Latitude vs Temperature (°F)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 7,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "image/png": "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\n",
+      "text/plain": [
+       "<Figure size 432x288 with 1 Axes>"
+      ]
+     },
+     "metadata": {
+      "needs_background": "light"
+     },
+     "output_type": "display_data"
+    }
+   ],
+   "source": [
+    "plt.scatter(city_samples[\"Lat\"], city_samples[\"Max Temp(°F)\"], marker=\"o\")\n",
+    "\n",
+    "plt.title('Latitude vs. Max. Temperature (°F)', fontsize = 18)\n",
+    "plt.ylabel('Max Temperature (°F)',  fontsize = 10)\n",
+    "plt.xlabel('Latitude', fontsize = 10)\n",
+    "plt.grid(True)\n",
+    "plt.xlim(-60, 80)\n",
+    "plt.ylim(-60, 120)\n",
+    "plt.tick_params(labelsize=12)\n",
+    "plt.savefig('latitude_temp')\n",
+    "plt.show()"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "# Latitude vs. Humidity (%)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 8,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "image/png": "iVBORw0KGgoAAAANSUhEUgAAAZYAAAEjCAYAAAAR/ydQAAAABHNCSVQICAgIfAhkiAAAAAlwSFlzAAALEgAACxIB0t1+/AAAADl0RVh0U29mdHdhcmUAbWF0cGxvdGxpYiB2ZXJzaW9uIDMuMC4yLCBodHRwOi8vbWF0cGxvdGxpYi5vcmcvOIA7rQAAIABJREFUeJzsvXl8VNXd+P8+M0kmk21IQpQAAYSAQpC9pWCh0j59Sm39ShdcWmtdwGqrttpfH21rq61r2699akWr4reu1K11afsgT6uCoCDKJrJqWEIgQbKQhWSyTOb8/rj3hsnkzl1m7iSTcN+vV15J7r1z7mfOXT7nc85nEVJKXFxcXFxcnMLT3wK4uLi4uAwuXMXi4uLi4uIormJxcXFxcXEUV7G4uLi4uDiKq1hcXFxcXBzFVSwuLi4uLo7iKhYXSwghxgghpBDi9j4+77nqeS/vy/O6KAghblf7f4zF46UQ4gmzbX2BEOJaIUSTEKLQ4XZ/JISoE0LkO9nuYMJVLAOUiBfu/+dgm2PUF8k0i8cPUY8/1ykZThWEEAeFEDsM9j+hXt+hfSlXX6HeN4uS2H4A+BXw31LKuojt44QQq1SFs18I8cMYn/+jEOIDIUSazu6HgTbgF0kRfhDgKhaXSMYAtwF6iqUC8AN3Rmwboh5/brIFc+k37kS57hUJtOEHlkZtuw1ImmIBvo9yfy7TNgghPMDLwDjgFuA14A9CiG9EflAIMRu4BlgipQxFNyylbAMeAb7vtDU0WHAVi4slpEKb3oPmMniRUobU6x53ig71851OymWEqkCuBl6TUtZE7BoPnA0slVI+JKX8AbAW+HrEZ9OB5cCDUsr3DU7zDOADLndY/EGBq1gGOUKIXCHEnUKIjUKIWiFEuxCiXAhxrxAiK+K4y4HV6r+Pq9MwUgixRt3fY41Fnf46oB5/W8TxB7X9sdZGtGkene0XCCG2CiHahBCVQohfA+kxvpdPCPEzIcRO9fgGIcQ/hBDTLfTJtaps/0dnn0cIcVgIsS1i21whxGtCiKPquY4IIVYKIT5jdi4nidVv6r4e6xiR10sIcaEQYpsQIqhe+yvUY0YJIf4qhKgXQjQLIZ4RQuRGtau7xiKEKFOnlFrUzz8jhDjNTDZNLnXXdyPuGymEyBBC1Agh3o7Rzn+px80z6apPo1jfK6O2+9Xf9RHb6oHsiP//CwgAtxqdQEq5H9gLLDaR5ZREb/7QZXAxAlgC/A34CxACPofyAE0HvqQetxa4G/gZ8CiwTt3+SYx2dwM3Av+NMr3wkrr9RDxCCiG+psp4EPi1KucVwFd1jk0HVgFzgadRpjsCKNMt7wgh5kspNxmc7jlV7suAv0ft+wJKn92nnutM4N/AUeB+lP4YBpwDTAXetf1lT+I1WEPxJdBuJF9FmdZ5COUlehXwZyFEB8r1fhPlmn8KuBJl7WCJUYNCiDNQ7g8fSt9XAuejXBMzaoDvoFy3dSj3GgBSyg4hxJPAj4UQZ0kp90R99grgIynlOoz5nPr7vajte1H64BdCiP8CJgELUablEEJMQFEo35BStlj4LhuAS4UQOVLKuO77QYuU0v0ZgD8o6xoS+P9MjssA0nW236F+/tM6bV6uc/wYdd/tRtsstvWEcut1/+8FDgG1wNCI7QGUuf0e7aAoNAl8KardPLWdNRb670WUl2h+1PangU7gdPX/G6L7yaHrd1Bt1+wnsj969FtUexJ4QufatACjI7YXqd87DNwU1cZLQAeQE7HtdrWdMRHb/qJuWxCxTaAMMHrIoSdbrG3q9gnqvt9GbT9H3f5fFvr2SfXYPJ19i4DGiP5dBWSq8q8G/mLjGt6qtjHTyXtjMPy4U2GDHCllh1Tnt4UQaUKIfHWU/Lp6yOz+k66bmUAJ8LiUslbbKKVsRPHAieZSYA+wWQgxVPtBUaL/Bj4rhPDrfC6SJ1FG3BdpG4QQOcDXgFVSSs1Sa1R/XyCEyLT/1Qw5CHwxxs+/HDrHK1LK7oV3qaw57EVRLA9GHbsOZepxTKzG1PWL84FNUkpt6lTRdvDbRIWVUn4EvAVcFuWRdRWKFfukhWaKgJCUskmn/VeAkSj3/Xgp5UKpLMZfBUwBfiSE8KteYQfVqdbrYpxH8zbTnQI8lXGnwk4BhBDfR5kOKaP3uloq+OKPVX9HT30A7NLZNhFlvrxGZ5/GUJQpmlisAo6hTIdpyusbKPPtkS+v51AU2c+AG4UQ7wL/CzwX+cKOkxYp5et6O4QQlybYtsZ+nW3HgWopZbvOdgAjT6fTgBysX6t4eBRYgTKN94qq8C8E/hmh8I2QgBBCCFXh9dwpZTMR02RCiGHA74AbpZTHhBB/Av4T5d4YgTJ1eExK+UJUUyLifC4RuBbLIEcIcRPKyLQa+B7wFZQR8eXqIcm6B4wetugBjdEDKmJs+5DYo/0vYqx0kIp321+AOUKIUnXzZSgv139EHNcupfwiygj3HqALZQ1oj7ou1JfEWrg3GiB22dwO+n0evS+ZL9O/oVgDV6n/X4yi8B+z+PkalOnVPIvH/xHYIqV8QrXILgfukVKulVI+q8pzlc7nCiLO5xKBa7EMfr6DMuXyZSllWNsohFioc6zdl4XR8ZrnTYHOvrFR/+9Tf0/UOVZv28co0x1vRn6nOHgS+BHKtMujKOtCj+qM5JFSvoc6yhVClABbUWI8Xk7g/HapV89fIKWM9GyK7s9kcgzFQUPvukxy4gRSynYhxFPADUKI4Sgv9SNYcw4A0AJPxwNGThwIIc5HsYymqJuGoqy5RFq7lcAMnY+XokzP7bUo1ymDa7EMfrpQpwa0DeoI9xadYzXPFj1loIfR8QdQHrr/iNwohJgLRLvpbgYOA1dEekkJIfJQpvCieQrFM+smPaGEEKdbEV5KuQ3YjjLVdRnK89BjDj+G19ZhlFFqQcRxWUKIs4QQxVbOHScfqb//I2r7j5N4zh5IKbuAfwKzhBALtO1CCIHiaWiVExjfZ8tRrI7foNwvT6jntsIa9behO7jqWv0Q8CspZbm6uQ7FgeHsiEPPBqp0mvgMsFm6HmG9cC2Wgc8XYiwq10opHwb+ijKF85oQ4iWU6YFvoXg+RbMLaEaJKG4FGoBjUso39U4spawTQpQDFwsh9qG44rZIKf8hpTyhxi4sEUI8i/Kwj0dxGd2O4qqrtdMlhLgReAF4TwixHEUpXYnyoI+KOvX9KNNdvxNCfB7FZbZJPe4LKF5PC7DGkyiuxTejuLJGuw/fKoT4T5SX6QEUBX0+cBY9F6s/jeJV9CTJC5p7FsVF+FEhxFkoffNllFF2X3Kret5/CiEeQFG056NYkVZ5F/gPIcTNKJ58Ukr5nLZTSrlbjWe5FGVg9GcbbW9GWVs6j4jIex3uRunD+yLO26Xer79QleVwtZ0rIj8ohBgHnAk4llJpUNHfbmnuT3w/nHTnjfWzRz3OC/wUKAfaUdx3f4syldHLVRjlIdqC8nKWqK67xHAtRnmhvoPi1iqBgxH7clBGnnVAK/A2SuzJE+i4zaJEQG9T5axEcYn+IjpuyyiDohuA99Vzt6BMka0A/tNGP56OomQl8PMY/fw8ynRiEGU6aiNKrIfQuR5PWDzvQWCHwf4niHI3VrfPVvu7DcU9+1GU1CWx3I1v12l7TeR1ith+ufqZcyO23U6Uu7G6/WwUz7UWtU9WoCzsW3U3Hq9+vkndr3c/fEfd90Ycz8d/oQxOTo+x/zMolsksnX15av/XoSi9n0Zea/WY29RrUNhXz/xA+hFqJ7m4uLikFEKIC1GU+reksohu57N5KAON5VJKwyj6OOTKRLGInpNS6k7Hnuq4aywuLi6pyg9QrLKXzA6MRioxLLehOAA4nSjyGpQF/jscbnfQ4FosLi4uKYOab+wLwDzgWuCnUsp7+1cqF7u4isXFxSVlEEpy09UojiPPATfIPsyM7OIMrmJxcXFxcXEUd43FxcXFxcVRBn0cS15eniwtLcXjSV0dGg6HaWpqIi8vz5XTAVw5ncWV0zkGgoygyLl169ZaKaWd2KRuBr1iOe2001i7di05OTn9LUpMTpw4wRtvvMEXvvAFV04HcOV0FldO5xgIMoIiZ25ubtxJVlNXZbq4uLi4DEhcxeLi4uLi4iiuYnFxcXFxcRRXsbi4uLi4OIqrWFxcXFxcHMVVLC4uLi4ujuIqFhcXFxcXR3EVi4uLi4uLo7iKxcXFxcXFUVzF4uLi4uLiKK5icXFxcXFxFFexuLi4uLg4yqBPQulyalFZ38qB6uOG+w/VtzKqIIuSgizTtqweq7Fxfx1r9h6jMNvHlyYPo6Qgq1c72v90tgFQ3RBkvEMJCTfur2NbZQPDA5kU5Ph6ya7tn1YyhNljC3t8z/oT7VQ1tnV/Ns0jCIVlDzkzOzy2+yQSK31aWd/K/+6o5kBdC2cUZvOlycUAbDpYDwKGB/xUNQZBwqwxBd3tVDcEu3+Pz8mJea54rmt03wG6/ay1rfVd9O/TMpX6V1sqjnNGsSeuPrRKvN/TCVzF4jIoWF9ey7LV5Xx4uJFM0cmt0+HHL27j8nkTmVNa2GN/c3uIXF8aU0oCXHfueOaUFsZsy+xYjUfX7uMPr39Ea0e4e9udK3eTmeZBAMFQGH+ah4x0D22dYdpDYYoyJbdOhysff59RxQWG7Zvx6Np9LFtdTlMw1GN7hgc+NbaQ0QXZ/PPDqh77szM8FOVmUtXQSkdX7LY1OS99bCO1HYKuMJb6JBIrfbq+vJafvvwhFXWtPT5758o9Mdv1eqAkP4vsDC8tLS3cWKb0Z1PYS0coTLAz3H2ucycUsXpvja3rCrH7NpI0D2T50mhrDxFxC/TitEzJz6fDj1/8gDaZbqsPrRLP/es0SVUsQojrgMuBs4FnpZSXR+z7AvAgMArYCFwupaxQ9/mAPwHfBFqB30opf59MWV0GLuvLa/nxi9uobmwHIDNT2b6looHtR7dyxTln8Pg7B7r3AzS3h3invI6PPjnB/RdNY27pUN22Io/dX3OC+xafPFYbEb5TXsNDa/brytYWOvmWCYbCBEO93zptXWHd9q1QWd/KQ2vKee79SvSKwXaE4Z3yOt6hrte+lo4wLVEvcSPCQJcqfqw+0cNKnwJc/fQmTrQbaDgdusJwUP0ORao10NYVprHtZGdo51q/r65HH1n5Do+u3ce9r+0hbFJoNxTGUPFoRDZjpw+tYuf+TSbJtliqgDuBLwF+baMQYijwErAE+AdwB/A88Bn1kNuB8cBoYBiwWgixS0q5KsnyugxAlq0u7/EgRVLd2M6Dq/fRGNQvm17T3M61Kzbz8LdnMae00LytNfu6z6mNCJ1Ca9/Kgx89Ku0vrMhspU+llLaVil1iVWE3+g7LVpebKpVEsXPdzbDS1wNesUgpXwIQQswCRkbs+jqwU0r5orr/dqBWCHGWlHIPcBlwhZTyOHBcCLEcxfKxpFiEEIVAIcCYMWNobbU+KusPNPlONTmrG4JUN7ZRHMikeIg/rmOqGoIcqTnePVoFKPDJHr+RHRRlGggiO7n95U1cM39cr7aiOXS0jl+93EB9SyeZ4qR1FA+95ASOHKvn48M1hv2x9uMaXth0mPqWjoRliFfOSDSZgV7XSu/6RFN5rI5QlzQ8xgk5jdDr922HGvDJTuN7xyaxZDS77law0tdWz5PoMy5kLDXuIEKIO4GR2lSYEOJ+IENKeW3EMTuA24A3gXpgmJTyE3XfN4HbpJRnWzzf7Wpb5Ofn8/jjjzv3ZVxcXFxOARYtWrRZSjkrns/21+J9DlATta0RyFX3af9H77PKA8BfAAKBwN45c+aQldW3XhF2aG1tZcOGDZwKcm6pOM69q3ZT09zRa19Rbga3LJwIYHjM1fPGUpDtoziQiQSWPrWJ1ojV5wKf5PuTwjy0y0N9u7Asmz9d8b4PdhqsvjqInpzZGV6WXzarx4jy9V1HWfbmxzS2JXeqyI6ckQh6rh10fy47nWvmj+MPb3zc4/pE48/wEOqSdHYlbrHEc91Bv9+3HWrgxhe2JSSTVRn1zm+XqoZgr2chGqvnSdRi6S/FcgLIi9qWBzSr+7T/26L2WUJKWQfKamVpaSlZWVkpXV9a41SQ8+H1O9hV04nyOupJTVsnj2yoQkppeMyPX95LlzzpmZSTnU1FU+/bo75dUNMmCPjTY66x9KBNUjY8j0NVTXF8s/jR5AQ4vSCH8SOLgJPrKO/ur1Pn+e29LJ0mUk4r1LSFuH3VfkYO0b8+GueMLERKyfp9vR0M4sGunAATRhZ097vGZyfl0C52WlqUt0u0jHrnt8uEnBxGFOUb9qMT57FCfwVI7gSmav8IIbKBcSjrLseB6sj96t87+1RCF8c5VNfK9sONhsdsqzzOtsoGw2O0ga3m7VLd1EZBtv4YqTjg4/oFpRTl+kzly/WlcfX8sRQHzI9NFhV1Lbyy9TCvbD3Mdc9uYf2+uqQvHieC2eu7MdjJ4Qbj63PduaVcv2A8OZle5wW0QFGuIoMeNywYjyfJ+lzrAye4fsH4mPevk+cxI6mKRQiRJoTIBLyAVwiRKYRIA14GJgshvqHu/yWwXV24B3gKuFUIkS+EOAtYCjyRTFldkk/l8VZOmHgwtbR3GZryetS3dDI8kMU5pUPJ9Z18gc0Ync/vF09nyfyx3H/RNAJ+YwN9SskQLpg2gvsWT+vVVl/R3N7Fj57/gB89/wH1LRasrASw+/BHv1896E+BRdMY7H19cn1pnFM6lN8vns6c0kLmlBby6KWzGFPYt1PBAX86f7xoesz4jiXzx3LLl88i4E935HyRfRjdB04wp7Sw1/2bjPOYkewn51bURXSVS4FfSSlvF0J8A1gGPIMSx3JxxHG3ocSxVABB4Deuq/HApEf0b34WOb40Q+WS7fMiJbaVS0VdKysvnQnAgeo6jpdv4b7FU7un7OaWDuXhb8/ihue36K7dRI7m5pYOpaQgi1U7jvK7/91DR4Jz/6lCccDHN2eOpK65gznjChmak8kPnt0cU4H50+HKc8Yxd3QOtR9tJj87g2NtJ4+1sxIVeX0q61vxqpHoIwtOzvXPLR3Kmp8soLK+lX/trGb74QZe2/FJ0vq/KDeDP140w/Rle/X8cVw9fxwb99exvbKBKSVD+KSpjZ+8uJ32rti9kO6Bn503kTOH5eH1CLrCiufbrs3ruW/xVM4oLkxKRPzc0qHMLR1KZX0rlfWtlAy2yHsp5e0oMSl6+14Hzoqxrx24Uv1xGYDEiv4dXZjFToM1jGkl+XHNtze3h6isb2Vu6VDyM8K8Ud77mDmlhdx/0XQeXLOP7ZUNEXIN4bpzS3Uj9AcqAX864bDs/o6jC7OQUvLEOxU0t4f4x/ZqppQEuPZzpazYWNEdZBhJsBOe2lBBeXU25xVAfUsH8a7zaNcHMI0KLynI4qp543invJZXPzgadx/Ewp/mYcaYgu5rbpXZYwu70+A8+tY+Q6UC0BmGX/9zN2XDc/n5eWXMLR3KiRMn2IViTefkJPdl3x8KRcNN6eLiOEbRvwXZaRRkp+uOkiOthgO1J2IGeumR60vr9RBVNwQ5drStR66kWKO5yvpWHl27j+XrDlDTbP28qUpHqIsnrvg0XWHJseY2frNqj+712F3diJGyaG4PsaWigfMKEpMn15dmKMdHnzSz9LNj+fLZxd3XyoqFGw9+XxqLZ44gjOy+B+ywvryWh9fqZ1qIRgI7qpr5wbObWHbJTKYMS3LQUYrgKhYXxzGK/q1vCVE2PI+JxYGYVgPAfYun9bAsPALDRWyPR3C4PkhJQRZbKpQklEuf2sTBpnDMUXFJQRbry2u5+W/bB7yFEk2wM8wVT7zHTf9xJm/uPWZ4PfqCKSVDeGHT4Zhy1DR3cPdre3jgzfIe12rKyIBj3mIa9S0d/Oj5D4D4cp5ds2KzbU+x+pYQD67ZxyMXl8Ul80DDVSwujmLF8+tQXSsPR8y365ns0ZZFTXM7967aHfPF1Bjs5Ibnt7J03hm88v4+vlcKLR1dgNDNlVRZ38prH1az/O39umsug4HWjjB3vbab9H4ujhHwpzN1ZB7/b90B02Mjr9XNC89iWkmAzRX1tIeSs84Sfb6i3MyY2YDXl9fyw+e3xu1+/P6BWv696+gpUavEVSwujmLF8ytyPcRsGiJS6RTl+rh2xRbDvF/3rNzD0BgpLaob27lr5W4C/vRBZ6HEQkoMMxf3BU3BzphJOmNR3djebVX0BdWN7dz4/AdIYlsxy1aXJzQI6eiCu1fu6ZV5ezDiKhYXR7EyL663HmKFkflZdJkEdZiNa40cB/oaLT4ikOmlpq1vov37g4HiU6fJqbfuI6VaD8YhtMzb0VZSf9ZQcRJXsbg4yqjCLNN58SklQ+IrEmXBGhpIaDryl+dP5pENVd3rSS6pgbbu84fXPwIhHHd7rm5s58cvfECXpLtWT3QNmb6soeIkp8J0n0sfk6zo35L8rO58XoOJ4kAmK5bMZuUP5/HfF04lK6N/ItBd9GntDNuOq7KKpquCoTCNwVB3njrNarrpxa2sL69NyrmTyeB7Sl36nWRF/44qzOK03L5110x2Og9QUs2Dsp50Wl6m4y+xgD+d0RYi2r3u2yDliKwBNJBwp8JcHCF6btjp6F+t/fOnFLOsDx60gux0Pjt2KP/e80nSsx0XB04qS6uxG7EyCkfjEfDVs4v554fVpsdmpnm58Yvj+f2/jbMRu/Qt2ysb4oq36U9cxeKSEGb1tRNVKHrtW32pxoMy1+0l2NHF3y28jI3wek6W8jUiMoW5lTUqgNGFigKqqGuluT2EL81DV1gSinBuCPjTuX5BKW/uPWYpu3NLRxfhsP10Oi7Jpbk9xKod1SydP66/RbGMq1hc4ibZ9bVjtW9GptcD2Hs5FmRnsHDy6fx71zHHIu8z07xcPnc0L2w+ottmUW4GSiq8nly/YLxp5oGDda0UB3zcsaiM03IzuxX4xv11vPXRMQqyMvjSZMWb6Q9vfGxJ3lxfGlNLhiQl2t0lMR5dd4Cy4YE+KSvsBO6sqkvcWK0Pn4z2QX/9IzNN2EqOCMrI/sFLZnCwttXRdC4tHV2cU1rE/Rfprzf9dOEk3c9JJAXZPtM1j+rGdl7cfKQ7Hmh9eS33v/ExT284xJ0r93De/eu4ZsUmy0piSskQZo9Vot1TFe2S5/rSmDw8j8nD8/CnDf7XWE1zO3ev3N3fYljGtVhc4sJKhH0ic8NW2s/OSOPur03mvQN1VDUG2VrZSH1LJx1p1ifKCrLTefCSmYzI95uezy4CONbcxqLpI5lbOpSN++v4oLKBqeoL/MSJE72SZepZaUZsO3Scx9buo66lg79uOdwjgK+5PcSuqmZLU4cF2emcO76IjfvrGJqdYet79hXZGV7+fPmn6ArLHil5fvj8NoKDIL+bGTurmnhl62EWTR/Z36KY4ioWl7iwE2GfrJiV5vYQD6/dzyF1nSEegu1dLFvzMedOKHJ8+kcCj607wGm5mbrrUNfM6f2CuGtl7LQ1erR0dHHnyj2Gx1hRs03BEHe9ltoj4paOLrrCssd0kBINnxyl4uRaXlaGN+G1KwksX3fAVSwug5dkRthbbV+QeCR9MBTmnfI6th4yrloZLzuqmnqlodHWoY43NvG9iJCel7cc7rfMAKFULlOpku3z8klzGxv31xEKS+pOtLP10PGknc/JHpFSkuFNXFUdrG0ZEB5irmJxiYtkRthbbd/JBz+ZnlCxc5v1zDu1fJ29fFr9iVm26WTQ0t7FjX2YP8xJul3WDQpRZmd41cSpsWnp6BoQimXwr3q5JI1k19c2ar8P4hb7jOqGIIfqWtlf29Lfoljm++eO65fSzYOV4oCPy+eOMb2vE5kF6EtcxeISN8murx2r/UnD8/o9sWHA79xLtbqxjcrjrbQlORDTKQSwtbKBgpzUXOQfaHg9UJjtY0hWOv4M41dyIrMAfYk75HBJCLsR9nazt+q1LyWc98d1/RZrURzwcdU5Y3lk3X5HFo6LA5nUdwgyvM4nOkwGEninvG5QWY39SVdYWYvbVd1kOL3oxCxAX+EqFhdHMFMoZhH6dtu3Ep2emebByZWY6EqXYSR3m3hkWeF3/9rLhoqWAaFUIhlY0qY+Rkol4E93ZBagr3CnwlySjhabsX5fXbdbcKLZW43WXwqylRXSe74+hRyH1gFyfR7uWFTGiiWzux/uhWXFjrS/9ZCbLt/FmHBYMrLAb35giuAqFpekk4wIfaP1nVvPU+qKTxs1xLEo8ub2MC9uPtJjm+a51l9YeXgFymjXzcQ/sNFiwgYK7lSYS1JJZoR+rPWdjw/XUI/ibWWUd8tuVMGWg/Xd59HWii6aVWKa18spCrLS+OrU4YRCkjnjCplaks/C+9caukpnZni4/fxJNLR2cM9re+mwkhUzAl+acS8lMyGoy0kGijeYhqtYXJJKsiP0gR7pPW7+23aqao5zYxksfWoTI07L58pzxrLmo5ruCo3aWsm5E4byyrYq9lQ3YWV5IxgK89qOatbsremxVjS6MIvCbF93pmGvAIS1zMZWyPWlMUqtp/Lyliqa20P8Y3s1JYV+0/ibYEeYG1+IL/bDIyAz3Qsy9heZNDyPIVkZbNhXm9S4Fq8HwuFTV4kNFG8wDVexuCQVrzD3dnJiNBaZY6soUzlXS0dXj0zLmqURqYj+/M4BS0pF4+G39lPf0jMf146qJooDPr4zZxTPvV9JfUun6Rsw4E/H5wlhlIU52+flrkWTAfjNqj29sjzvqmq2LngchCU0BkOcHmNqvyg3g1vPm4THo6xrrdlzjOb2+AJNY1k+Rbk+rp53BgsnFwOKV6HXI3hr7zEeess8oHQwWFQDyRtMw1UsLklhfXktd63czW4TF0pwZjRmZR1nxZLZPc5jlj1Zj0ilEn2OFRsrLdU9AcjPSmdCYRYQ27NtWkk+i6aP5FvL3+2TqbZYaNdPKUdw8mI2tHRy6Z/f7WGZeQRIaf9lPqowi4bWDhqDJ63bgD+N780by5L5Y7u3adfvV//YaandS2aXsL2y0dSVN5XwCqVkcbQX4kDCVSwujrO+vJbrnt2ijNxNcGI0Fs86jpXP2MWqUgGoqGtl0eQS6NBXLFq/HKprZUtF8vJh2cGX4YGWkxZ0RjDWAAAgAElEQVRJp86bOp6XtwBqm9to6eg55dYYDPHIun2EpeTLZxd3X7uN++soP2ZurfnTPVz7OeXeeu69QwOixG9Bdhq3nT+ZohxfwkXy+hNXsbg4zrLV5aZKxSvgM+OGOjIai2cdZ9XO6n4tZiWB9w/Uc8YImDE6n/UHT/RY/9H65Z3yWtpCqRGRr1gTzodFSuilVDRqmju4+7U9PPBmOaMLs2hu6+RQfdCSRdTWGearD6yjIxROenlpJxhT6Oeer00dcNaJHq5icXGUQ3WtbKs0zxScke7h3q+f7ciIzG6m5fXltSxfd8DWOYb402nr7HL0JV/Z0Aoj4L7FUzne4dHNXOAV9l/kvjQP7SmijJxCW8uyg4QeU2upTLbPy9NXfWbAWijR9FscixBijBBipRDiuBDiqBBimRAiTd03TQixWQjRqv6e1l9yutij8nirpUzBwY6wY375VuJJItdx7NbwSPMI/vTtmcwYnW94XMBvkLpWh2DEKL2kIKu7EmQkXdL+3JJXr7SmS5+QBqaVP/WYVpI/aJQK9G+A5EPAMaAYmAZ8Dvi+ECIDeBV4BsgHngReVbe7pDgl+VlkWYjG83mFow+S1UzL8aytXPSpkcwpLTQ9x/ULSmPu1yPbQj+V5GfhT7f3mIbDYYpyrcthRhxG0ylLCMXN3E6XFWSnDzivLzP6U7GcAbwgpWyTUh4FVgFlwLkoiv8PUsp2KeUfUa7T5/tNUhfLjCrMYlrJENPjMjOcDfiKjMTXXtjZGd5emZatrMdEc7AuGPMcPq9g5uh8fr94Okvmj+2VDcCIM4vzTI8ZVZjF9FHGllI0bSHJ0nlncE7p0F5KKU0olpUVoybb5yU7w0scRtMpj0TpZ+0+8Kd7DPpcIge8U3RP+nON5X7gYiHEGhTL5MvAL1CUy3Ype9zO29Xtq6w0LIQoBAoBxowZQ2traqdC0OQbLHJeOLWIj48Y5//K9Ib4+HANxUOcy380ZVgmj1xcxsGj9ezbuZVlF5YxZlgBACdOnACgKFMyOs9jq7DXkWP13bKG2oPIjiA53hBZmQCSI8fqWfav7YTaxzN99BC+N2c4v2lq4lhT7JdFUW4Gl0w7ncZDtab9ee3ckTQ0NfUqDBYLr4DT/fDIxWW8vusoL7xfSWVDkLbOMP4MDxOLs5g0LI9/bK/SXYPIzUwjz5dGXUsHbaEwBT7le2i/4yHL56G9U9KVRJ9fJ+R0kuz0Lu762tnsOdrE0xsO0tIh9WXs6uTJdXuZMiyzfwTVIdF3kZD9NBwRQkxEme6aCnhRpryuAG4FyqSUF0ccuwL4WEp5u8W2bwduA8jPz+fxxx93VHYXFxeXwc6iRYs2SylnxfPZfrFYhBAe4H+BR4C5QA7wZ+A3QDUQPUeQB9gJM34A+AtAIBDYO2fOHLKyUndhrLW1lQ0bNjBY5KxqCLL0qU2GVkF2hpfll81y1GKxKufWigbuWbXLsgWgyfq7f+1l6yFjj7fczDSa24yn2rwewe++MZUzizJsX/fqhiDrPq7h+U2HYwZr2pElO8PLmKHZzC8tYt6EobrfscAn+f6kMA/t8lDfrj+fk+H1cPPCM/n8xNO75axubKM4kGmp35zAipx9TXQJZyMZ71s8tZeDyPPvH+KZjRWcaDv5LOVmevnO7DEs/lRJ0uRO1GLpr6mwAqAEWCalbAfahRCPA3cCNwE/FkKIiOmwKcCDVhuXUtahhjSXlpaSlZVFTk6Oo18gGQwWOSfk5DCiKN+wXsqEkQWMH1mUDPG6ycrK4niHp1dhsXllOdR1wGPrDnCgroUWkzQkE0YW4PNn8/bBE7R2GL+watq6sLJ0+8OXdvOHr5/VLafV6z4+J4fxI4vID+Tx4xc/MAxItCJLTVuYg03N7K3rIH9ILusrWjgR46Vc3y6oadPfd05pIdPHFfPBUaWvx48sYvxIxVlizf4mOkKJvej96R7aOsOWViKM5EwVomXM9aVxRnEhOTknBxiPrt3Hvf86oF7jk8fWtIW541/76fRmcPX8cX0otXX6RbFIKWuFEAeAa4UQ/xfFYvku8AGwBiWB0g1CiIeBperH3uwPWV3iwyircF/lPrrphW1sqGjpUVjs3AlFrI5IIpmd4WVMoZ/jrR00BnsrGE1Wq27UVqlv6WDFe4c4ryC+z5+Wl+loipLqxnaWv30grqDRgux0GlraOe/+dT362pfmYc3eGkfkvOfrZ/PCpsOmxd0GKnppjZatLo/Zd2EJD67el7KKpT+9wr4OLARqgHIUT70bpZQdwCLgMqABuBJYpG53GSAY1UtJdiU8LQVKZAEtrbDYPa/t6VFwrKWji4N1QbweD2XD82LKatWN2g57q/UD/irrW3mnvNYwzkcLCnWSitoWW9/Rn+5h8vA8QLKzurlXX7+5xxmlkutLY+boAhacedqgLIccyPRy4cyRPba9u6+OJpPgzsZgJxv3p6ai7TevMCnlNhTXYr19W4GZfSqQi+PEqpeSbJ7ZWMFXYuitWC+6+pZOJhYHePjSmbqyam7UZiPmgD/dcs6wligLyE75Zi0o1MkRfEtHF2XD89hpEOFeNjyPX351El1hSUlBFjf/bTs7qpIb3a6N5lfvPTbInHIVGtu6uPWVHbywuZLrzh2PRPLTl7db+uz2ygZmj029FDBuBUmXpBMrqtwIK6N2PQ7VtbL3aHzp5LerqWhiyXr9gvHdZY/1KMhO4/oFpZZiWKBngGQ85ZuNAjbjIdeXxtXzx8ZsU0uTP3tsIXNLhyIljify1GN0gZ+N++vYeig1knHqIYC0BN6m2rX+wbObuHbFFirU2CkzpliIGesP3FxhLimFnVG7HomshZgVHJtTWsiyS2Zw98rd7D7a1J0u3itgYnEePz9vEnNKC5k0PI+fvfwhB+uMlaISIKkoDCtp/+eWDu0lz32Lp3Htis2O5MSaUjKEC6aNoCjHx4Nr9nUXRlMUYBc/XTipxzWIJ9g0Hv7yXiUvbzlCMIXzn0nACfHqW6z3Z8CfnpLWCriKxSVBtBK9oxyY5oos1qWhjeS0Yl3RL9doapra4p6H1ys4Fv395pYO5Z83zKOyvpXNFfUAzBxd0ONzc0uHsuYnC3h16xFufeVD3eJXxQEfl356NPXltVQ1BOMu3zwyP8uRSpWRDhXRU5hFmZJdm9czfbQyOtb6JM0jTJN/OkUqK5X+wCPg+gU9HWCcfBYTxVUsLnGRqGWhRzyj9mhe2Hw47nn4SM8cs+9nZb3ogukjKMrtOfqPTIt/9jAfb5TD0ca2uMs3x2M1ZKYJ0r1e3TT9kWjf8cSJE+xCcYp4eP2OHn0ST8JFUBJ7njks13A9x0Ufj4CffXlidwG0ZDyLieIqFhfbbKk4zs1/35uQZRFNPMW6YrXhj8NkEdDtmeOE5aRh5MCgpZkZFsi0lfY/EislA6JpD0mu/OwoPltaZMuh4t5Vu9lVc9IxQVsLig4CtMLnJhSx5LNjueH5rbYyTbuAP93LlyYPA5y9V53EXbx3sc0zGytMLQu72CnWlUgbsZDQnRHYiuVkFyMHhuFD/LbS/kdipWRANBJYsbHStkNFrEwFYdkz4WKuL820hEBbKMyc0kLuv2ia427cg52Wjq7u5yAZ96oTuIrFxTZmXleaZWEHK3EZsUbtdtowa9uO5eQkVtP+2/1sLOzEQFQ1mHsohcOSx747i78smc1j351lmmwysg8zbZYFONXp73vVCu4VdbGNmdeVmWWhh91iXfG2Yda2E5ZTPCQSUKr3WStst1DpE5Q1IDOa20N0hSVzS4cSCkvLfWiljLVLT/r7XrWCu8biYpusDC+0xfbS8ad54qpi6EQamOsXjOeOV5sAa3EA0W3bLXPsJIkElEZ+dtWOau5aucf0M1ZjIIYFMjGLIInsE6t96BGiT+JgEiHDK5g5Kp/tVY2mOeX6goLstJS4V81wLRYX25w5LNdwfzAUZsmTm/j2Y++yodx6ZLgTaWDmlBZyy8KJwMkARK9HiTWJhS/t5By/E5ZTosQTUBr52aXzx5HnNx4z2omBGG4hA3Vkn1jtwy5pbtn0Nx1dkg0H6lNCqQAMD2R1PwepcK/GwrVYXGzzndlj+PCTPTEXDeGkZ8pHn5zg/osS96KqrG/l5S2HQcCsqLiRaGaMzueNclh+2Sxq2pQSyJsr6rn1lR2c0HlBHKxr5QfPbmbZJTOYWzo0JRJoJsoNC8Zz92u7db219GIgItm4v45tlQ1MKxnSQ/kU5WZQ09Z72kqvT6z04Yh8f5/FwQwWKupae3hGpuq96ioWF9tMHz2E+xZP6xGfEYua5nauXbGZh789y5ZPvaZQ1pfXcs0zm9ld3dT9klQi3XP5+Xllhm0WD/EzXk1Hf/PftusqFY36ls7uOBnNcooVf9JfsQF2WDJ/LGEk97/+ca+cZKMK/JQN7z3SfXTtPpatLu+R/DDgT+NH80dRANyycCKPbKiy1CdW+nB9eS0ed87EFtHxTKl6r7qKxSUuNMti4/46Ln/8PYKdsddcGoMhbnh+C/dfNN2WT/368lrddCVdEnZUNfODZzex7JKZpm0eqmtlm4WF6m2Vx7sf2v5KoGkXo2jrycMD5PnTeimWg3VBbnpxa48Yh0fX7uPe1/b0snAagyEeXruPn01TLMEVZSW61uQ75bXdMkTKtGLJbN0+1OIvzDL4DgTSPeD1eGjrg+wAemsmqXivGioWIcRI4GJgHjAcZUV0B/A/wGtSSjfPwilOKCwNlYpGTXOHpch5jfXltVyzYrPhi6e+JWSpTav5w1rau3oFYKbCQ6qHlWhrO5kMzGp/RBJpTd78t+3dMvjTPGSke+gIhQl2hnvIFH2NjGQbaGT50ikbntcntWKM1kxS6V6NaYiqFR3/DHSglAy+BPg+8DpKHZW3hRDz+0JIF+eJN3twNGkegd9iHIJVn/r15bX88Hlro9lth46btmm1loo/3cMnzW394p5pByuZkO3EOFip/QHw4qZDhjIEQ2Eag6HugUas7MxWZLNKwMRJoS/o6Oziok+VOJppWo+Bsr4HxhbLfVLKHTrbdwAvCSEygFHJEcslWTiVVyiyHSsWC5hnD9ZYtrrccpoPLQrZLL7FSi2VjlCYG5//ICVyLRlhZoncvXI3Pz1vouUYhw+PWHvJv7KtiivOnWQqg55MkdaRE1mRPQImqRml7/ifneyqjq9UghMEQ2GKcnzct3iapazWegiU79QlUS0/Lx2hrgjLb+Cs74GBYtFTKkKIcUCWlPJDtaJjeTKFc3EWp/IK6eUKs4IVn3q7o9nsDG93m9rc/mmZved0LppVwoeHj9PcHlsJdqkf689cS2YZaq30z86qJnZXNVqOcfAIazFH9Sc6qKxvjasOS2Set3jym0UTllDX0o5E8ouvlHHTi1sJtZsHciYDrR8r61t7rWdZRaLcfwXZ6fzyq5NYNH1kSq2Z2MWyHSmE+BlwNhAWQoSllN9JnlguycCJ7MFgnCvMCCs+9XZHs9NG5VNZ39pjrn9Mnocby2BrRQNeXxvLVpez9dBxy5aVhp0+SRSrluSqHdWm/SOBl7dVmVaY1K5HSYEyVWi2DtUWCiuKBWwrhUhr1anql9r1WbFkNvctnsaT6/ai1bfJ8EKc73jbFOZkdFfTTDShZn1LJy9uPsKi6SMHpELRMFpjuV4IETkxPVVKeYmU8tvA1OSL5uIkTuYViqdCo9X5YTv5vgqy0zh3QlGvuX5t1Pirf37Idc9uYf2+OttKRaMvci1tqThuqXrk+vJalr+931KbB2tbDOf9o6/HFXPHmLapWYfx5GSLtladqn6pXZ+5pUO5b7HyWvr+uWNZWFaccNtWqahr5Tev7XZs3cjOPefUWqnTGK26HgdWCSHOV///lxDiLSHEOuB/ky+ai5M4mVfIioeVtqBvN3Lear6vycPzePCSWazeeyym9dQY7Eo4D1Vf5Fqymi36rpW7Y2YYjqalo6t73t9KJoOfLDyL0QXGEfZnFuf1sDjsEG2tRmZZ8CdQ0zfy+jz/vuJc8NCa/fx9e7Wlz08enmcrv5oeEnhk7X7HAj2t3HPry2v51vJ3Oe/+dXz7sY3qb3uZLpKJ0RrLM0KIvwI/EUIsAX4JPAukSylTO8GPSy+czCtkliss15fWneE2HnPeKJo44E/n1xeUccG0EY56F8XCap8kUr3PSrbox9btY5eNolia3FpMjpX5+nu/PpWbXtwaU8ld+unR3X9fOKuEDfvqLBVVK8hO17VW7cRCxUL7no+u3cf/W7ufn02z/ll/moc/XTqTqoZg3OfXsFuPxgizey5Va7BEYqaqxwHPA8uBO1CU8y8BV7EMMKzMa1vNK3TmsFwqmmLfAlOiUoHYxWo0cV/UXDfrEye87BQLMPYCenN7iKc3VNiqjBkttxUFH6vfZ4zOAWq7SxODUrvGqjzDA37Dvpg9tpDpo/LjWnPRvuey1eX4bL7cPR7B4fogHx5pSEipOI3ZPefUWmkyialYhBBPqPv9wD4p5VIhxHRguRDiPSnlHX0ko4tDOJVXyChXmFk7lfWtbDpYr5vzK3LUbyWa2AnvIiOKcjMMv4vRyHF3dVO3d48ZZhZgts/LJzYWha1cg1jWlV6/52eEeeONN3ocZ6fvo/Nb6clx0adK2HO0ydbUZUF2OhfOGtkdh1OUafmjgDJduPTp9/CmUF4Zs3vOiUqrfYGRxTJdSjkVQAixFUBKuRU4XwhxQV8I5+IsTuUV0ssVZtbO+vJa7lq5Wzfn1wXTRrB6b41hfXk9nPIuisXVnx1n2CdGI8f6lk5+/MIHvLj5sKn1YmYBnlGYzQ4L02AeYE7pUMNrYNW60iuhHImdvo+OX4qWwyMUe61LKvdElwXLwyuUPr715R3k5xhXqzTiRHsY6HtrJcPrIeBPI9jeSUfE6VvaQixb8zGA7jW0s1aaqopllRDiLSAD+EvkDinlq0mVyiVpJJJXqFqtJFjdEGRuaZHldtaX13Lds1t6jUa1nF87qnrWDrEzX2xnrt8Oub40Fp49LOZ+KyPHLoml72FmAS6ZN1bNzGz8Qvn5Vydy1WfH6u5Lxrz89QvG8/GxZlOHgsg1Az05ItcnrCiVyOOa20OGSVD7mmyfFynNHVx++80piPRMfvj8th4uyq2dYcNrkso1WCKJaQNKKW8Gzge+KKX8Xd+J5NIX2Kn5oXmgLH1qEwBLnzpZa8VKO/FWCbRSs9vOXL8dzOa57azvmH0PzQKM5b21aPoIUy+sycPzYioVSE5tdKVm/XTT+vaRfTmYcoTpMa0kn2kWCqhNLRlimGEi1jVJ5RoskRitsVwK/CVWokk1Cr9YSvl2soRz6X8iR5hFakR7S0eX5ZGu1czCsTCbL453nSUzTZDrz9B9sK2sN9k9r9n3MLMkzdbHfn7epJjnPlTXypYK4xqQWw7Wx5Qv0lLVyhBEyv3wt2dyw/NbTfuyL7z4+pOi3JPfNda1KsrNAIJUNQTjXitJ1RoskRitWhUCW4UQfxZC/EAIcaEQ4jIhxK/VKbLfAp/0jZgu/UWiI12rmYVjYebTH2+d+5ljCrn/ovirVdo9r9V4mFgWYCLVNSuPt5qmdA+qUfWRGFmq0bJZ6cu+8OLrL7IzvPzxIuW7Gl2rny5UBgBHG9vijitzotJqsjGKY7lfCLEM+DxwDjAFJW3+buA7UspDsT7rMjhwwgNFyywcr3KJNV8c6VG04Mwi3t1fZzmWQBvVzSktTKiOhdHI0er3sIOeVQNwqF7f60rDazEX2O7qxm7r066lmgpefBoXTC3mWBu8XV5nOgWbk+lBSE/C6zRpXvjwSAMjC/yG9XxOnDjBG+UwLJCZ0FpJKtZgicQwjkVK2QX8W/1JCkKIi4HbUDIlHwUul1KuE0J8AXhQ3b5R3V6RLDlceuOEB4rVzMKxiJ4v1vNsEh7jADXN0yiW51q8D2Wkl92GfbWGMjg5760lPIzMj2bk4dUlrWncl7ZWcdW8cUD8sRJGfZlsLz6NVz+opqZNcHquj8nD89hXc6JXnIrikehcduTGYBd3v7aHB94s7+XRqNcfw4f4HYkrSzWFotGvxQyEEF9EqfVyEfAeUKxuHwq8BCwB/oESnPk88Jn+kfTUxMoIMzK7cCyuXzDedowC9J4vjuXZZEZmhpe7Fk1mZlTcTDTxRM9rI8dXtx7hV//YQX1rb3mcnve26+FVkp+FL81Du8l02MHaFsvZiyMtVTv9ZtXKK8hOJ9jRlVDg4ifN7TS2dfCfZ53O1FFDmDxiCNWNynrRzNEFVDUEWb3nGPtrW+I+RzTadfjokxN8c8YIJgzL7RWvpTEQ1kripb+r5PwK+LWU8l31/yMAQoirgZ1SyhfV/28HaoUQZ0kp9+i25OI4VkaYbaEubnlpu2GsxpzSQpZdMoO7V+5m99EmutR3hTZqvGDacNZ8VGsaExOvR1FLexen5WYaukMnGj1/wfQRFOX6+qT2uF1rYlRhFqWn5bDTJBZGq21jJXtxc3uIVR9Ws/qj2PFHeujFUnk9EA7Tw7uvraOLjDRPwhHxbZ2Sv394lL9/eJSAP43rF4wnjOQrD6xLalnkmuZ2/vSWkjBUi9f6+XllnD3sZOLNVK1X7wSmikUI4VWnxBxFzZw8C/i7EKIcyAReAX4ClAEfaMdKKVuEEPvU7aaKRQhRiOJ8wJgxY2htTa3Mn9Fo8qWinNfOHUlDUxM1zR0UqDkzCqJyZ3x0uJY7Xm3iloUTmTE6X7edKcMyee7K6VQ3BNlZpYyGy4YHKB6iJD68ZMbpVDcEqW5soziQ2b1dC86raghypOZ493y/EdFyZmd4KcqUuoF+WyqOc+8qJbljpoDMTIBOS99J7zs+cnGZ4feIJJ7rbqUfjhyr5+PDNd3nBlj6meHcvbLR0DVb6ycJjM7zdK+L6V13n9fDX99T3Mjt9lt0P9W3KC/h+pbIeJgukF2c7reehyvW/dmN7OTRN3chAR/YjtRPhE/qm/jF397j5/+pWCHaNbd7z/QVib6LhDSZfxVCHAD+CjwupdyV0Nl6tjscxULZjBIv0wm8CqwBhgE1UspbIo5/B1gupXzCQtu3o6zbkJ+fz+OPP+6U2C4uLi6nBIsWLdospZwVz2etTIVNAS4GHhNCeIA/A89JKa2nWtUnqP5+QEpZDSCE+D1wK7AWyIs6Pg+wusL2AGq2gEAgsHfOnDlkZaXeApdGa2srGzZsIJXlrGoI8pNn3+PKCSEe2uWhvr23p1F2hpfll83qMVJ28vxXPfG+qdssKCPW708K89AuDw0dgu/NH8uFn+pdRbuqIcjSpzYZeqwl8zvFc92tyAwgBHxv/lguivjeWysauGfVLt1I+aLcDH66cFJ3oskX3j/EI2v3E5Y9+1Pvuuthtd+sXoObvjiBe1ftodMgND8eOe2QmeYhy+dNqBTD8GzBlRNCKf2sQ+IWi6likVI2o2Q3Xi6EmI+SOv+/1ZT6d0gp4ypPLKU8LoQ4DLrW+U7gu9o/QohslEzLOy22XQfUAZSWlpKVlUVOVGBXKpLKctYcbaOqRblU9e2CmrbeD25NW5iaNtEriM4JJuTk0NjlpanNepy9Jucb+5q5ckFvmWqOtlHRFMYos3Ayv5OGnes+ISeHEUXWMgH/ce1hrlpwMnByXlkOXl+mpTn918ub+CTYs19iXXc9rPab1WvwyIYqjrZCWJqf346c9pD8fF4paz4+uR4YTxuQ2s+6E1haYwG+AlwBjAHuA1YA84CVwIQEzv84cL0QYhXKVNiPgH8CLwO/E0J8A/gflFT9292F+/5Di0eB2CNLKzEn8bpGHqprpSPBKpDxxFWkQt6lSCrrW1kw4TR2VjXSaLL43BjsZOP+uh4lDKzEPzgRIW+136xcAwGmjgd9gZI/rpilnxvHxv11vLrtCKt2HrVlwSgF8IytTSeel/7GylTYx8Bq4HdSyvUR2/+qWjCJcAcwFPgIaANeAO6SUrapSmUZ8AxKHMvFCZ7LJQFGFWZx5rBcVENQFysxJ3a9rTSsRI/HIlasjZM1apJNdF96LQ7It1c26NbGMYp/cCJC3mq/WbkGZjaqzyvU/MTJyBp3kiklQ3rFD/nTPLYCgCcODwC1uvucfF76GyuK5bLofGBCiHOklO9IKW9I5ORSyk7g++pP9L7XgbMSad/FWb4zewz1MUqfWo05iTebbiJR20aj54EQS6DXl1azAKdZ1UARJBohb7ffjK6BwFxdtHdJCrLTWXR2IXDYlqzR58rO9HKirbeSKA74OHdCUa/rELQx2An4vVz66dHUlyuKJdIyqaxvTfmqkHawUuHmjzrbHnBaEJfUZn15LU9vPKi7zyugMDujxzans+nGmxMMjEfPc0oLuXnhWUwenke2zwukXt6lRDIC/3bVXtu10O32taa74u03iaQg24c34m3kFTCm0G/ZBqlv6eTVbdbq3EfKrJGbmca3Zpdw5wWTY+bgWr33WNzXITvDy8Pf/lS3c8RNL2zrUa/+mhWbHc8+3Z8YZTeeA8wFioQQN0XsygO8yRbMJXXQRsyh9ja+ovO+0Oqq3PTiVu5bPI2R+VlJqXJnJzeXhtHoOXrqITvDS9nwXK6eN44Lpo+wfI5kkuh6RzBkXN8jFlb7ujjg45YvT6QoxxdXehE9awyUe6qlowt/uvUgSTsTYV1SGVWHAY+A1vYQKzZW8vdt1UwpCXDnoskU5Z78TlauQyzrqijX152gcu3OSgC2HmqgWfVcs+IEkApVIe1gZLFkADkoyic34qcJ+GbyRXNJFayOmLWRlZ0cY3bQy+rqFXSPdL2eniPRGaPzY46etRfa+n113Q92S0cXO6uauXfVbtaX68+D9zVOZQSOHPVW1rfyTnmtYf9H9nV2hjKOjOzryJH8BdNGWK7tE43RvVXT3EFGWvLGsJq6CsuehcPeKa/j3lW7Abq/k5XrIFHq4kRbO5pSAXhmY3zpDuN5Xh/R92kAACAASURBVPoTo+zGbwFvCSGecJM/nrrYHTFvOVjPnuoiPMI4Yjpeb6tYGX4j/z5QXcfx8i3ct3hqTJfOO/9nV1xJFvsaJzMCbzlYzzceWs9HnzRbWhzW+vrjwzXs2ryep6+aTWZWtmPZdK3cWx2dXRTl+mIWxEoW0feAVQ/CP106E0C3jw7VtbL3aLOu1W9GqnknmmE0FfYHKeWPgGVCiF6vCCnl/0mqZC4pgd0RczAU5g+vf2SahiNRb6vohzby7/yMMG8YRFe9suUwu02y2abK1IMVr6mAP52OkHnCxmAozOZDJwt+WV0cLh7iZ5f6OyfHukIxc5u1cm8FQ2FunHcGb31Ua5pB2mki7wG7HoSxvm+85SNSxTvRKkZeYU+rv/9vXwjikprEM2Jubjd+ePrb22r52wdM5+PNygH0JWaea79fPB0h4PLH34vLJdtpC82q26xVK+DLk4u5ev44wwzSySD6HkjUg9BKLJge/f28xINRzfvN6u+39H76TkSX/iQRbyw9vB64ZeHEhL2trKwT6HGorpUDFtKkWykH0FdYqRj4mXGFlpNl6qGNzhNFb+1Ks4xuenFrj7Uru/XbL5g+gmXfmsk5pUPxJCOwPoro6adEKzeejAWLTcCf3r2mlZ3h5ZzSodyycCJh5OBYYxFCfIiBo4WUckpSJHJJObSRWqi9LeG2usKKl0y8JBpEZnU6YszQ7JRRLGAtYj4erzkNpyw0uyn97VoBVurfOIXe9FOilRuNYsEKstMpzsvkoKpAQuEwO440sKWinmBneEAFTBp5hX0VJevwKvXn2+rPSpRsxy6nCNpIrWx4dF5Q+ySyCGlnNBwLbfrFCAFcPW9sXDImG63sLdDLYos1op45Ol9NJRIbveuiWYXVDcEYn+qJnVLWZjKbWQGR1ov2OW2kP2JIpkHmMWuYTT9p18HuvazFscwYnd/j+04engdIdlY306JOJbeHJI3BUPfamd17vT8x8gqrgO4o+3Midt2iprD/dbKFc0kNNCuhqrYFTiehaYhEFiHjLZcbiZVF2LLheSkTxxKNmcUWa0T9reXvWl54jj7HmDwPN5Yp2ZHnlcVOnBhvKet4rYDozxVlSnZtXs9peZnIo/F7kY0pzOKer01JqlVw3+KpHO/wdH/fm/+2nR1V1qyvVPJajIWVlC7ZQojPamldhBBzgezkiuWSKkQGsGnFpYw8cwJ+L16PRzcxXyKLkHZGw/kZhoeZTr/8/LxJOp/qf+ykydFezpX1rby85TDTSwIxy0MXB3xcOGsk75TXUtPcxm9W7elxjhZ16vCeVbvw+jJjvtASTeppd1op0utsbulQTpw4wS5g79HE6tcfqm/lw6qGpE832Qm+jCbS8kvFhJVWFMtVwJ+FENoqWwNwZfJEckklzIIjo6ONO0OSkiI/wwN+KupaHSu3amc0nD/MuDTgQC0Ja8diW19ey10rd7O7uinmQMCf7mFcUQ5SSm59eUd3cstYechqmjsMR8p9ldQzltV2zZyRAOoaWvxmdVjCg6v3cfX8cQnJaZV4gmCb20Nc8/QmDtUHUzJhpZV6LJuBqUKIPJSKk4nl03YZMFgZSUW/g1o7w+yoaqI44OOORWXdteYTfZl4hSAzzWPoTnvSk8vc5TbRRdi+xo7FVlnfynXPbjFN556R5qGqsZX6lpMvNbPklmbxPclO6mlktR1vbOJ7pSguvW3xZcLW0Cs5kCzicekXwM6IWKxUS1gZc0VPCHGp+vsmNVfYEuCqiP9dBjmJpBOpbmznxc1H4k71obG+vJZvLX+XpU9tMo3RaAt1cctL29la0WC5/XgXYfsaOxbbstXllmqENAZDPZSKFcxSiyTqkmuGWQoYwNSl1yrbK63fR4kQj0t/LP2fKgkrjSwWbR3FmavkMuBINJ1IotHrsRIUxqIrTI+R62DC6vqF1yPYlsQXohWvvmRZg1bXIr4yuZgPP2mLOxOxxpSSIQl93g52XMXNSgmkQtYIowDJR9Tfv9L76TsRXfqLRIMjE02cF2+6eL2a7gMdq8GEobCMO22IFeyskThtDVq1oPOzM7hv8TQmJeAeH/Cn98k0mIaepZfhgbQoF8zsDK/lrBH9iWk9FiHEGUKI3wshXhJC/F376QvhXPqf6xeMpzigH9BotjyaSMyKE+VxrcZfDBSMroW2fnEybYjzFOVm9GtqESsxSADFAcVzbelnz4jrPAL46tnD+vzlPLd0KCuWzGblD+fxs/POIpDtIxTledHS0ZXU584prBT6egU4iFLc676IH5dTAL306VqqCbMRYSIeQE6ki69uTDxTQCphZf1iVGEW0xyawtFS5GvX/acLJ/Wrx5FVC7p4iB+A5ev22z6H1yPISPOw4r1KtRCXvSJpTlBSkMWavTUxMzqbWSypkLDSirtxm5RSr4qkyyAlOittdPr05ZfNYvzIIjaoUcDJ8AByIl18ccDY7XggYjW1S6yYlUgKstMBqbuAXxzwccvCiRTl+roDD4cFfLxTXtsvMRPaPXnRp0pirkUUZGcAQaobguz8qME0gzXAL746kcnDA7y67Qirdh6lvqWTLtVKiMfTyiyjsxUSKSqWKgkrrSiW+4UQtwH/ArqvppRyS9KkcukXzKK6I9OnQ3LjQazERJihyTkYMVoQn1NayLJLZnD3yt3sPtpEV5QznT/Nw4wxBVx3bikSaXr9tKqHS5/axMGmvs1ZpXdPjir0U5jt646T8qd7yEjz0NoW6pbzWJuwVFHy5S1HmDQswAeHG2MqYiuR7onmsIvEalGxsuF5HHIwVsxJrCiWs4HvAJ/nZICAVP93GSRYieqeohN4GK8HkJWRXbxJFYtylZHrqczc0qH884Z5VNa3srmiHoDigJ+usOx1jYyu3/ryWu5dtZvvlWoR+KLPYiZi3ZM7q5q746Rqmtp59O39SrVJNTNES0cXrR3WAiR3VDVxzYpNNAaNX+RGnlZ2MiJYwaoH4MMGRcX6GyuK5WvAWCnl4HO1cenGSlT3IxeXxfy81Rvbzsgu0iKyUuRJG7VdM2cE9eWbTWU5FbB6XWIdt2x1eUwvu2TnrDK7J1/cfITjLe0JewGaKRVQFMWqD4+y9HO9k5M6kcMuEieKivU3VhbvPwD6zqHbpc+xGtVtx8tq4/46HnlrHxv3n3w47GYnrqxvRQLXLyglM93Y08mf5uGx785ixZLZ3RlkXRIjnmzFTlBZ38rLmw+bxuNsOlDHLgvrKE7x6Nv7et2jyeojKx6AqYwVi+V0YI8Q4n16rrG4pYkHCVajuq14WT26dh/LVpfTFDEKDPjTuH7BeN7ce8zSyC7aqslK99BqoexuV1/WrT0F0O4Lv4EPhJOVNqOvuxntZvlnHEYvV1q8GZ3NGKj57DSsKJbbki6FS5/TY43D4pxucSCT4zGPUJTKva/t6TVl1RgMcddru0kzmfbeXtnAK1sP98qua6ZUNPlScUogVYjHW+lk3Ehs7zKn+t1uloX+InqtJdGMzkYMtHx2kVhJQumWIR5ExFrjGF3g75HULpopJUO6vcJisWx1ecx1ECmh02SA2dweYvm6A3G9XFLBdz8VScRbSZvr//hI7KJSTvV7vFkW+ppo66MvMjoPJIWiYSXyvlkI0aT+tAkhuoQQTX0hnIuzGK1xVDe1UZCtP86wMqf77r66HtNf8ZCd4bVUjz6agTDn3BdoFR+1+XwnKm5ev2C86mXXG6f63YksC2ZkeJQp2UTRsz4G+npIMrBisfRIQimEWAR8OmkSuSQNo1FhfUsnk4fnMbE4I+ac7okTJ2K2/cHhxBMfjh6aza4q8zGLP81DMBQeUHPOySSWVdLQ2pmwt9Kc0kJuWTiR4+VbyM7wUtPmfL/bybKgXXu7fGrsUD43fih3v7bH9mcjGV3Y23oY6OshycC2CpdSviKEuCUZwrgkDyujwoq6VlbG6Rs/daQ1T6yC7PSYVQyv/uxYbn11h+l89WPfnaUbj3EqYhRDYRbJYTUL7ozR+bxRDssvm0VNm3C8362sU2T7vNy1aDLFAT9XPPG+rUSbmtUwIt/PH98sNzxPZpoHr0fS0qE/b1vVGGR9eW0vhTyQ10OSgZWpsK9H/HxTCHEv5ulqLCOEGK9OsT0Tse1bQogKIUSLEOIVIUSBU+c7VbHrvWI3K+1nxhWSZzLVEPCns+ySGTFzXS2aMcJSBt/ZYwsHRA2VvsDICnU6C27xEH9S+t1KDrBpJfksmj6S2WMLLedC08ujZnaemWMKGDM0dqWQ+pZOw3onA6W+T7KxYrGcH/F3CCUh5QUOyvAg8L72jxCiDHgE+AqwBXgUeAi42MFznnIk03tF44YF47n7td26C/geocSjmI3skl2BcDCR6NqE1eutxS9VNwQZn5MT9/mMsHPdzXKh5WZ6ufrzE1g4uVh3PcToPItnjuTWV3YYypoK9U5SHStrLFck6+RCiIuBBmA9oN053wb+IaVcqx7zC2C3ECJXStl30VCDjL7wXlkyfyxhJA+u3kdj8ORDH/Cnc/2CUpbMPxm1HGuqwJ2vtk6iGaDNrre2dlNVc5wby5QcXCNOy09KjjA71z1WLjSvOvf3q/PPZl7ZyLjOE0YmJS7lVCOmYhFCPICBNS2lvCGREwsh8oBfA18ArorYVYaiaLTz7BNCdAATAEt5OoQQhUAhwJgxY2ht7d+iN2Zo8iVbzmvnjqShqUk3BUZRbgbXzBlhuEBvRc5vzTidb804nQ8qG9hb3cSZxXlMVacujNqOZMqwTB65uIzqhiDVjW0UBzK7E0rqtRF9XKScem2kCole96JMyahcQdAgzidWFlyz672l4jj3rtpNTXMHBT6lBZ8I8dHhWu54tYlbFk5kxuj8uOSOhZ3rPmVYJs9dOV3JZFylWG2lBRns27mVM4syDO81o/NUNQQZnecxXMPJzvBSlCkt38+R9NWzniiJyiek1NcdQojvRvz7K6ICJaWUTyZ0YiHuB6qklL8RQtwOlEopLxVCvAG8KKV8OOLYI/D/t3f/UXKV9R3H39/dzSa72WTJhhAihKySKJAKiabFiGg8UIscranRIwfU0lNqwYJtrcdCT1sCtj1Sfx2KKJRyIkqoigXFaq3VIy2QBeWHRkCCAfNDCbrZ/Nzsbn4+/ePeWSaTmXvvzNyZ+9yZz+ucPbBzZ2e/98mz97nPfZ7n+3CJc+7+hJ+9uhDvrFmzWLNmTT2hioi0nZUrVz7mnFtWy89W7LEUNxxm9hf1NiTFzGwJcD6wtMzhUaB0B6mZQDWPwW4C7gLo7+/fsHz5cnp7/e22jo2NMTQ0RDPjrOVOPos4Kym+oy61YGYH7zv1IJ97uoMd+4+eGzVnRndD7rZrUWt5Rp17sTkzurnmgjNYuuC4qv69X9g1zp988dHJu/aBqY4PnnHkqPKc3t3Jbe9f5lUvMK36+cTmXfzDt59mx77K5VtrPfLpbyhKvT2WpNON007KswIYBLaYGUAf0GlmZwDfAc4qvNHMXgFMBZ5N+uHOuRFgBGDhwoX09vbS16BBxzQ1M85FfX0sKv8YOpYP5XnLuid5evgg5TdIDh4N7dhvDE8cfXx44iC3Dr3A2sXzGx9kQtWWZ/S5B/p7pvDO3144OdZQzb/38IsTbN5z5JjPLy7P4YkjDE9Ywwbz61FP/Vy3cTufX/dLtuw+zPihyuVbbz3y4W+okepfilqbfwW+XPT9RwgamiuAE4AhMzuXYFbY9cA9GriXgnpnQ+V5Vk/Sc989fpDbH3qeM142s+q09s2YQZilSnnTqs1Xtn7rLh55foRDR1wmu2r6LGrwfi8v9VR6i9K4GOCcc9Ebnkdwzo0Bk30tMxsl2AJ5GBg2s8uBtQQD8N8DGjYzTfKn3tlQeZ7VU82517pfSjNmEGYhLm9atfnK9u4/xKVrfsj4webuqpkHUWMslVcJpcw5t7rk+7sIx0hESiW5o46S57vtas+9uHdWeqcelfH4qjcv4ue/2Vt2HCeP64nidnn86O+dVlMvuDAjr1m7auZFVo/CRGqW5I46Sh7vtguqPfdg58Nt/ODZ4ck79Z6uDrqndHDg0JGyd9uFO/vRiaMbr2mdHZyzcHYu1xPF7fJ424O/qKsXXPxZjdxVMy/UsEguRa2g7u/pBMqvQ8jj3XapqHMv1TOlY3JP+ILxQ0eOSuRYfLf9R+e8nDUPld+6oHdaF3+24tTcNSqJ8uRt38fUTktl87Bqx/Bq2SvHd0m2JhbxTmEFdbm8Y9e+7dVAkDyxXE6yvF0YSxWfe2dMpsnuro7Ee8Jv272fmyMzYB+IzJPlqyTjUvsOHKazM/5y2NMV/56kOdjWbdzOxbc9zIU3PsAl//ZI+N+HGdpYW0/cJ+qxSG5Vyjs2OjrK9zfCp959FjsPdLRkttnCuX/jx7/ium8+VTZv1pwZU9k7Xnn3x3J2x+ypk8cZdYmyJ3d3cihma+upXR3887vO5Jp74zNwx5XP45t38tf3bag45pP3cRr1WCT3ojLKtnq22XcsOalixugPnPtyJmrYuyRKtRmRfZAkq/GC46ezP6as9h86wuy+qYkycMfVtzsf2Ry7V06eqcciknOVem5bRsa48fvR+49UK68z6uKyGifdC2j+QG8qGbg3vBi9LC+PPcNi6rGItIjS3lmSO/VSccMMeZ1RFzUmV81eQPMHemM/K8kYXtxGZXnsGRZTj0WkhVUzg6zDmExBX86cGd25nlGX5l5A9e4Y2dvdCROVCzuvPcMCNSzS9lplumfhPLo6bDLNSLn9R4J1LJ0cOHR4ch1LR0f8wP01F5yR+xl1kO5eQLVOCnnViTPYvKfyFOionmEe6qsaFmlbcSk+8qJwHk9s2XnU3iw9XR28ZjDYmGvtZWcfc3dd+L7DjMu++Gjs7zmxf2ojT8MLzdq7/n1nD/LTXz9T1ThNnuqrGhZpS3EpPvIy3TMqceL4oSPHnE/xRbJw0Xxo4/ZEA/zbdk/UnBE7bxo9PX3pguOq6h3lrb6qYZG2FJfiIy9pOZIkTow7n6T5x+b1T6s5TjlWNb2jvNVXzQqTtpMkxUdhuqcPtu4Y46GN24+Jp5rtA6LOJ+nsMZ829WolcWut8lZfQT0WaUNJUnz4kFo/7pl6NSn0484nakbUnBndwHg9pyJ1yEt9LaYei7SdwqOfKFlP9yw8U1/33Ah7w4tK4Zn6h+9+gnUbtyc6j4IZU7vo7LCyPR+IXudxzQVnpHdinqvUO8xSHuprKfVYpO3kYSOrJM/U1152duIU+h0dxmV3PBo5mygu91or83nGVR7qayn1WMR7jbiLvOrNi5hXYfps1qn1q3mmftWbFzEwPfr+0Ai2Kq7U8ynV6vnVSiXpHUZpRi/H5/pajnos4q1G3kXWshiuWap5pv76hcczr7+XHfv2VHxvpZy9Ps4mykKtM66a2cvxub6Wo4ZFvNSMefvNWgxXrSTTfwvP1LeMjLF5pPY75bwnO6xXNb3D4jLKYl2Jr/W1HD0KEy8luYtMi2+PfpJM/y08U69mZlg5eU92WK9qeofFmlk/S/lWX8tRwyLeyeO8/bQlfaZezcywckpnE/k4K6qRaplxpfoZT4/CxDt5nLeftqTP1JPMGIpS6PlEjRe8+sTWzRFWy4wr1c94aljEO9WMMbSypM/Uq0mNX6zQ84kbL7jh919V97n4rNqNu1Q/4+lRmHinmjGGdhD3TL3c4sYOi/7M/p4pk5tSxY0XrP3hlrri9121G3epfsZTj0W8lMb2r+2kuHfz6KYdXH3PevYfqjTRGA4cOszJAz2Jxgs2bNvDhQNpR9xccXuYVDvjSvUzmhoW8VLe5u37Yv5AL1t2jEU2KgDjB4+wdccYDmLHC/bFbKPrs2rXmiSdwqv6GU0Ni3grT/P2fdJpMc/BCu/rMOb198SOF0zv7gTy17g0eq2J6mdlGmMR7+Vh3r5PDrvo3srk+464ROMFr5o3M42wmq5Za01UP4+lhkWkxcyf1cu0rug/7Z6ujskLYdyamff+zoLUY2w0rTXJlhoWkRZzyuxeXrNgVuR7XjM4MNmwxM2KWrrguIbHnLZaV9RLOjIbYzGzqcDngPOBAWAj8DfOuf8Kj58H3AycAjwCXOqc25xRuCK5Uu2spajxgtHR0abEnCatNclWlj2WLmAr8CagH/g74KtmNmhmxwP3hK8NAI8CX8kqUJG8qXZtRkGrjBdorUm2MuuxOOf2AauLXvpPM/sF8FpgNvCUc+5uADNbDWw3s9Occ8/EfbaZzQ4/g8HBQcbG/O7uFuJTnOlQnIEzT5zGrRctZtuucbbtnmBe/7TJfeur6YXktTyveP3J7Nqzh+G9B45575wZ3Vy+/KRUe2PlyjkuRl/VG5+5hDNIGs3M5gKbgSXAFUC3c+6KouNPAtc65/4jwWetBq4FmDVrFmvWrGlIzCIirWrlypWPOeeW1fKzXqxjMbMpwFrgDufcM2bWBwyXvG03MCPhR94E3AXQ39+/Yfny5fT2+tvlHRsbY2hoCMWZDsWZrlaIM0lvohaPb97Jx7/zs4q9oqsvOP2oiRR5Kst6ZN6wmFkH8CXgAHBl+PIoUDp5fiawN8lnOudGgBGAhQsX0tvbS19fXzoBN5DiTJfiTFee41zU18eik9P/Xbese5Knhw8SbAB9tOGJg9w69AJrF89PFGMryXS6sZkZcDswF1jlnDsYHnoKOKvofdOBU8PXRaRG7bbfSiNprUxlWfdYPg+cDpzvnBsvev1e4BNmtgr4FvD3wPokA/cicqxm7s/eLrQvS2WZ9VjMbAHwpwSD9S+a2Wj4dYlzbhhYBfwjsBM4G7goq1hF8qyQM2vdcyPsDS+EhZxZH777CdZt3N7Q39+qvaRadp9sF1lON95MuQeTLx3/HnBa8yISaU1JcmbVk4yxklbvJdWy+2S7UEoXkRaW1ThA1r2kZonLs9au+7KoYRFpYVnlzGpWZuGs1ZrhoNVlPXgvIg2URc6sanpJrfCYSPuyHEs9FpEWlkXOrHbNLNwqedbSoIZFpMU1exxAs6VEDYtIi2v2OIAyC4vGWETaQLPHAardD6Zg644xtuwY4xSNU+SaGhaRNtKsgeVCL+nm+59j/dZdRetYjuPKFQuP6SW1+pqXdqOGRUSA9HsLSXtJhTUvxb2bwpqX54dH+dS7lzRkAac0jhoWkTbX6N5CXC8pq8wA0jhqWETaWJLewpknTmvY72+3NS/tQrPCRNpY1ivk23XNS6tTwyLSppL2FrbtGo98Tz205qU1qWERaVNJewvbdk80LAateWlNalhE2lTS3sK8/saNsUDzMwO06v4wPtHgvUibSrqfyLzjeni6gXFUu+alVlor0zxqWETaWK0r5NPW6MwAWivTXHoUJtLGfNtPpFEZgrOe/dZu1GMRaXOtvp+I1so0nxoWEQGal0es2apZK9OK558FPQoTkZamtTLNp4ZFRFqa1so0nxoWEWl5zV4r0+7UsIhIy/Nt9lur0+C9iLSFVp/95hM1LCLSVtSgNJ4ehYmISKrUsIiISKrUsIiISKq8bVjMbMDM7jWzfWa22cwuzjomERGJ5/Pg/c3AAWAusAT4lpn9xDn3VLZhiYhIFC8bFjObDqwCfss5Nwo8aGb3Ae8Drk7w87OB2QCDg4OMjfm9oU8hPsWZDsWZLsWZnjzECPXHZ865lEJJj5ktBdY553qKXvsI8Cbn3NsT/Pxq4FqAWbNmsWbNmkaFKiLSklauXPmYc25ZLT/rZY8F6ANK81zvBmYk/PmbgLsA+vv7NyxfvpzeXn/nrY+NjTE0NITiTIfiTJfiTE8eYoT6eyy+NiyjwMyS12YCe5P8sHNuBBgxs9mbNm0amzt37rPA4ZRjTFMnwVjSr1GcaVCc6VKc6clDjBDEebqZzQ6vp1XxtWF5Fugys0XOuZ+Hr50FVDtwPxvoBd7jnHs2zQDTZGavBDYAKxRn/RRnuhRnevIQIxwV52yg6obFy+nGzrl9wD3A9WY23czOAd4BfCnbyEREJI6XDUvog0AP8Bvg34ErNNVYRMR/vj4Kwzm3A1hZ58eMANdRQ1euyRRnuhRnuhRnevIQI9QZp5fTjUVEJL98fhQmIiI5pIZFRERSpYZFRERSpYZFRERSpYZFRERSpYZFRERSpYZFRERSpYZFRERS1bINi5kNmtm3zWynmb1oZp81s66i40vM7DEzGwv/uyTDWC8ys5+F2zA/Z2bnFh07z8yeCeP8gZktyCrOMJ5FZjZhZneWvH5xuIX0PjP7upkNZBDbVDO7PYxjr5k9YWZvLXmPF+Xp49bbceXnS9kVK1cffaiLJTGW/fv2pTyjrpU1Xyedcy35BXwb+AIwDTgR+CnwofBYN7AZ+EtgKvCh8PvuDOL83fB3v46goT8JOCk8djzBPjTvDs/jE8DDGZfrd4EHgDuLXltMsKXBGwn20rkL+HIGsU0HVgODYVm+LYxr0LfyJMh/95WwvN4QxrU443/biuXnU9lF1Udf6mJRfGX/vn0qz0rXynquk5lWigYX1s+AC4u+/wRwa/j/bwF+RZjSJnxtC3BBBnGuA/64wrEPEOykWfh+OjAOnJZRmV4EfDW8+BQ3LP8E3FX0/anAAWCGB/VgPbDKp/IMf+8B4JVFr30J+HjW5VWp/Hwpu5LYjqmPvtXFSn/fPpVnpWtlPdfJln0UBtwIXGRmvWZ2EvBW4DvhscXAeheWVGh9+HrTmFknsAyYY2YbzeyXYTe0sCXzYuAnhfe7YDuB55odZxjrTOB64K/KHC6N8znCC2dzoivPzOaGMRSyYvtSnq8EDruj9+P4SQZxRCopP1/KrhBbpfroTV2M+fv2qTwrXStrvk62csPyvwQFsAf4JfAo8PXwWL1bH6dlLjAFeBdwLrAEWAr8bXjclzgBPgbc7pzbWuaYT3ECYGZTgLXAHc65Z8KXfYnTlzgqKlN+vsVcqT76FGfU37dPcVa6VtYcqmvH8QAABChJREFUYy4bFjO738xcha8HzawD+G+CzcKmEzzPnAXcEH5EXVsfpxUnQdcX4Cbn3Dbn3Hbg08CFPsUZDtidD3ymwkd4EWfR+zoIHi0dAK5sdpwJ+BJHWRXKz5uYY+qjN3ES/fftRZwx18qaY8xlw+KcW+GcswpfbwAGgPnAZ51z+12wZ/MaXrpgPwWcaWZW9LFnUv3Wx3XF6ZzbSXCHUGnvgqcItmQGwMymEzwzbmqcwAqCAdwtZvYi8BFglZk9XiHOVxAM9qW69WqCOAn/TW8nuFtc5Zw7WPQRTSnPBCa33i56rZatt1MXUX6+lB1E18em1MUkYv6+fSnPqGtl7dfJZg8UNXFA6nngaoLNzI4D7gXWhscKsx3+nKDSXUl2s8KuB34EnEBwp/AA8LHw2ByCrucqghkbN5DBzBGgl2C2SOHrk8DXgDnh8UI3+lyCu547yWgmDnAL8DDQV+aYF+UZxvJlgplh04Fz8GBWWFT5eVZ2FeujT3UxjLXs37dn5Vn2WlnPdTLTStzgwloC3A/sBLYDdwMnFB1fCjxG0F19HFiaUZxTgM8Bu4AXgX8BphUdPx94JozzfsKpsxmX7WqKZoWFr11MMGNkH/ANYCCDuBYQ3B1OEHTjC1+X+FaeBHeKXw/LawtwsQf/rpHl50vZxdVHH+piUSwV/759Kc+oa2Wt10ntICkiIqnK5RiLiIj4Sw2LiIikSg2LiIikSg2LiIikSg2LiIikSg2LiIikSg2LSBXMbLSK964ws9cXfX+5mb0//P9LzexlNfz+TWZ2fLU/J9JMXfFvEZEarSBYYLgOwDl3S9GxS4EngReaHpVIg6lhEamTmb2dIGNtNzACXAL0AJcDh83svcBVwHkEDc0mgnTqa81sHFhOsCfGMufcdjNbBnzSObfCzGYTpH6ZA/wQsKLf+15e2pDpEeCDzrnDjT9jkWh6FCZSvweB1znnlhLkAPuoc24TQd6tzzjnljjnHii82Tn3NYLU5JeEx8bLfWjoWuDB8LPvA04BMLPTgfcA5zjnlgCHCRo0kcypxyJSv5OBr5jZPILewy9S/Ow3Au8EcM59y8x2hq+fB7wW+FGYfLYH+E2Kv1ekZmpYROp3E/Bp59x9ZraCIClitQ7x0hOEaSXHyiX0M4JNuK6p4XeJNJQehYnUr59gb3CAPyx6fS+Vd9srPbaJoAcCQSr1gv8jfMRlZm8lSL0O8H3gXWZ2QnhswMwW1Bi/SKrUsIhUpzfcu7zw9WGCHsrdZvYAQdrxgm8Cf2BmPzazc0s+5wvALeGxHuA64MbwM4oH4K8D3hhuYvUWgnTwOOeeJpgw8F0zWw/8DzAv7ZMVqYXS5ouISKrUYxERkVSpYRERkVSpYRERkVSpYRERkVSpYRERkVSpYRERkVSpYRERkVSpYRERkVT9P4B8W/rnMDqEAAAAAElFTkSuQmCC\n",
+      "text/plain": [
+       "<Figure size 432x288 with 1 Axes>"
+      ]
+     },
+     "metadata": {
+      "needs_background": "light"
+     },
+     "output_type": "display_data"
+    }
+   ],
+   "source": [
+    "plt.scatter(city_samples[\"Lat\"], city_samples[\"Humidity(%)\"], marker=\"o\")\n",
+    "\n",
+    "plt.title('Latitude vs. Humidity (%)', fontsize = 18)\n",
+    "plt.ylabel('Humidity (%)',  fontsize = 10)\n",
+    "plt.xlabel('Latitude', fontsize = 10)\n",
+    "plt.grid(True)\n",
+    "plt.xlim(-80, 80)\n",
+    "plt.ylim(-1, 110)\n",
+    "plt.tick_params(labelsize=12)\n",
+    "plt.savefig('latitude_humidity')\n",
+    "plt.show()"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "# Latitude vs. Cloudiness (%)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 9,
+   "metadata": {
+    "scrolled": true
+   },
+   "outputs": [
+    {
+     "data": {
+      "image/png": "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\n",
+      "text/plain": [
+       "<Figure size 432x288 with 1 Axes>"
+      ]
+     },
+     "metadata": {
+      "needs_background": "light"
+     },
+     "output_type": "display_data"
+    }
+   ],
+   "source": [
+    "plt.scatter(city_samples[\"Lat\"], city_samples[\"Cloudiness(%)\"], marker=\"o\")\n",
+    "\n",
+    "plt.title('Latitude vs. Cloudiness (%)', fontsize = 18)\n",
+    "plt.ylabel('Cloudiness (%)',  fontsize = 10)\n",
+    "plt.xlabel('Latitude', fontsize = 10)\n",
+    "plt.grid(True)\n",
+    "plt.xlim(-60, 80)\n",
+    "plt.ylim(0, 110)\n",
+    "plt.tick_params(labelsize=12)\n",
+    "plt.savefig('latitude_cloudiness')\n",
+    "plt.show()"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "# Latitude vs. Wind Speed (mph)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 10,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "image/png": "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\n",
+      "text/plain": [
+       "<Figure size 432x288 with 1 Axes>"
+      ]
+     },
+     "metadata": {
+      "needs_background": "light"
+     },
+     "output_type": "display_data"
+    }
+   ],
+   "source": [
+    "plt.scatter(city_samples[\"Lat\"], city_samples[\"Wind Speed(mph)\"], marker=\"o\")\n",
+    "\n",
+    "plt.title('Latitude vs. Wind Speed (mph)', fontsize = 18)\n",
+    "plt.ylabel('Wind Speed (mph)',  fontsize = 10)\n",
+    "plt.xlabel('Latitude', fontsize = 10)\n",
+    "plt.grid(True)\n",
+    "plt.xlim(-80, 80)\n",
+    "plt.ylim(0, 40)\n",
+    "plt.tick_params(labelsize=12)\n",
+    "plt.savefig('latitude_windspeed')\n",
+    "plt.show()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": []
+  }
+ ],
+ "metadata": {
+  "kernelspec": {
+   "display_name": "Python 3",
+   "language": "python",
+   "name": "python3"
+  },
+  "language_info": {
+   "codemirror_mode": {
+    "name": "ipython",
+    "version": 3
+   },
+   "file_extension": ".py",
+   "mimetype": "text/x-python",
+   "name": "python",
+   "nbconvert_exporter": "python",
+   "pygments_lexer": "ipython3",
+   "version": "3.7.1"
+  }
+ },
+ "nbformat": 4,
+ "nbformat_minor": 2
+}
